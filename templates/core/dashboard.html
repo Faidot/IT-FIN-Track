@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - IT FIN Track{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Stats Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon success">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Total Income</div>
+                    <div class="stat-value">Rs. {{ total_income|floatformat:0|default:"0" }}</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-chart-line me-1"></i>This Month: Rs. {{ monthly_income|floatformat:0|default:"0" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon danger">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Total Expenses</div>
+                    <div class="stat-value">Rs. {{ total_expense|floatformat:0|default:"0" }}</div>
+                    <div class="stat-change negative">
+                        <i class="fas fa-chart-line me-1"></i>This Month: Rs. {{ monthly_expense|floatformat:0|default:"0" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon accent">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Current Balance</div>
+                    <div class="stat-value {% if current_balance >= 0 %}amount-positive{% else %}amount-negative{% endif %}">
+                        Rs. {{ current_balance|floatformat:0|default:"0" }}
+                    </div>
+                    <div class="stat-change">
+                        <i class="fas fa-info-circle me-1"></i>Income - Expenses
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon warning">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Pending Approvals</div>
+                    <div class="stat-value">{{ pending_approvals|default:"0" }}</div>
+                    <div class="stat-change">
+                        <i class="fas fa-hourglass-half me-1"></i>Reimbursement: Rs. {{ pending_reimbursements|floatformat:0|default:"0" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="fas fa-chart-area me-2 text-accent"></i>Income vs Expenses (Last 6 Months)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="fas fa-chart-pie me-2 text-accent"></i>Expense by Category
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Transactions -->
+    <div class="row g-4">
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="fas fa-arrow-down me-2 text-success"></i>Recent Income
+                    </h5>
+                    <a href="{% url 'core:income_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_incomes %}
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Source</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for income in recent_incomes %}
+                                <tr>
+                                    <td>{{ income.date|date:"d M Y" }}</td>
+                                    <td>
+                                        <i class="{{ income.source_icon }} me-2 text-accent"></i>
+                                        {{ income.get_source_display }}
+                                    </td>
+                                    <td class="text-end amount-positive">Rs. {{ income.amount|floatformat:0 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-inbox"></i>
+                        </div>
+                        <p class="empty-state-title">No income records yet</p>
+                        <a href="{% url 'core:income_create' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i>Add Income
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="fas fa-arrow-up me-2 text-danger"></i>Recent Expenses
+                    </h5>
+                    <a href="{% url 'core:expense_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_expenses %}
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for expense in recent_expenses %}
+                                <tr>
+                                    <td>{{ expense.date|date:"d M Y" }}</td>
+                                    <td>
+                                        <i class="{{ expense.category.icon }} me-2" style="color: {{ expense.category.color }}"></i>
+                                        {{ expense.category.name }}
+                                    </td>
+                                    <td>
+                                        <span class="badge {{ expense.status_badge_class }}">{{ expense.get_status_display }}</span>
+                                    </td>
+                                    <td class="text-end amount-negative">Rs. {{ expense.amount|floatformat:0 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-inbox"></i>
+                        </div>
+                        <p class="empty-state-title">No expense records yet</p>
+                        <a href="{% url 'core:expense_create' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i>Add Expense
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Trend Chart
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: {{ income_trend_labels|safe }},
+            datasets: [
+                {
+                    label: 'Income',
+                    data: {{ income_trend_data|safe }},
+                    borderColor: '#28A745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#28A745',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                },
+                {
+                    label: 'Expenses',
+                    data: {{ expense_trend_data|safe }},
+                    borderColor: '#DC3545',
+                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#DC3545',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+    
+    // Category Chart
+    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+    new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ category_labels|safe }},
+            datasets: [{
+                data: {{ category_data|safe }},
+                backgroundColor: {{ category_colors|safe }},
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        padding: 15
+                    }
+                }
+            },
+            cutout: '60%'
+        }
+    });
+</script>
+{% endblock %}

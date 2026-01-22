@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Reimbursement Report - IT FIN Track{% endblock %}
+{% block page_title %}Reimbursement Report{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="row g-4 mb-4">
+        <div class="col-md-6"><div class="stat-card"><div class="stat-icon warning"><i class="fas fa-clock"></i></div><div class="stat-content"><div class="stat-label">Pending Reimbursement</div><div class="stat-value">Rs. {{ total_pending|floatformat:0 }}</div></div></div></div>
+        <div class="col-md-6"><div class="stat-card"><div class="stat-icon success"><i class="fas fa-check"></i></div><div class="stat-content"><div class="stat-label">Completed</div><div class="stat-value">Rs. {{ total_completed|floatformat:0 }}</div></div></div></div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-warning"><h5 class="card-title mb-0 text-dark"><i class="fas fa-clock me-2"></i>Pending ({{ pending.count }})</h5></div>
+        <div class="card-body p-0">{% if pending %}<table class="table mb-0"><thead><tr><th>Date</th><th>Source</th><th>Description</th><th class="text-end">Amount</th></tr></thead><tbody>{% for item in pending %}<tr><td>{{ item.date|date:"d M Y" }}</td><td>{{ item.get_source_display }}</td><td>{{ item.description|truncatewords:8 }}</td><td class="text-end fw-bold">Rs. {{ item.amount|floatformat:0 }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="p-4 text-center text-muted mb-0">No pending reimbursements</p>{% endif %}</div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-success text-white"><h5 class="card-title mb-0"><i class="fas fa-check me-2"></i>Recently Completed</h5></div>
+        <div class="card-body p-0">{% if completed %}<table class="table mb-0"><thead><tr><th>Date</th><th>Reimbursed</th><th>Source</th><th class="text-end">Amount</th></tr></thead><tbody>{% for item in completed %}<tr><td>{{ item.date|date:"d M Y" }}</td><td>{{ item.reimbursed_date|date:"d M Y" }}</td><td>{{ item.get_source_display }}</td><td class="text-end fw-bold">Rs. {{ item.amount|floatformat:0 }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="p-4 text-center text-muted mb-0">No completed reimbursements</p>{% endif %}</div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Audit Trail - IT FIN Track{% endblock %}
+{% block page_title %}Audit Trail{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="filter-section">
+        <form method="get" class="row g-3">
+            <div class="col-md-2"><input type="text" name="search" class="form-control" placeholder="Search..." value="{{ search }}"></div>
+            <div class="col-md-2"><select name="action" class="form-select"><option value="">All Actions</option>{% for val, label in actions %}<option value="{{ val }}" {% if action_filter == val %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+            <div class="col-md-2"><select name="model" class="form-select"><option value="">All Models</option>{% for m in models %}<option value="{{ m }}" {% if model_filter == m %}selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
+            <div class="col-md-2"><input type="date" name="date_from" class="form-control" value="{{ date_from }}"></div>
+            <div class="col-md-2"><input type="date" name="date_to" class="form-control" value="{{ date_to }}"></div>
+            <div class="col-md-2"><button type="submit" class="btn btn-secondary"><i class="fas fa-filter me-1"></i>Filter</button></div>
+        </form>
+    </div>
+    
+    <div class="card">
+        <div class="card-body p-0">
+            {% if logs %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Model</th><th>Details</th></tr></thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td><small>{{ log.timestamp|date:"d M Y H:i" }}</small></td>
+                            <td>{{ log.user_name }}<br><small class="text-muted">{{ log.user_role }}</small></td>
+                            <td><span class="badge" style="background:{{ log.action_color }}20;color:{{ log.action_color }}"><i class="fas {{ log.action_icon }} me-1"></i>{{ log.get_action_display }}</span></td>
+                            <td>{{ log.model_name }}</td>
+                            <td><small>{{ log.changes_summary|truncatewords:15 }}</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if logs.has_other_pages %}
+            <div class="p-3 border-top"><nav><ul class="pagination mb-0 justify-content-center">{% if logs.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ logs.previous_page_number }}">Prev</a></li>{% endif %}<li class="page-item disabled"><span class="page-link">{{ logs.number }}/{{ logs.paginator.num_pages }}</span></li>{% if logs.has_next %}<li class="page-item"><a class="page-link" href="?page={{ logs.next_page_number }}">Next</a></li>{% endif %}</ul></nav></div>
+            {% endif %}
+            {% else %}
+            <div class="empty-state"><div class="empty-state-icon"><i class="fas fa-history"></i></div><h5>No audit logs found</h5></div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

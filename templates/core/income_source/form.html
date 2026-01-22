@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} - IT FIN Track{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-coins me-2 text-accent"></i>{{ title }}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label">Source Name <span class="text-danger">*</span></label>
+                                {{ form.name }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Color</label>
+                                {{ form.color }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Icon (Font Awesome)</label>
+                                {{ form.icon }}
+                                <small class="text-muted">e.g., fa-building, fa-wallet, fa-user-tie</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Status</label>
+                                <div class="form-check mt-2">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label" for="id_is_active">Active</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Description</label>
+                                {{ form.description }}
+                            </div>
+                            
+                            <div class="col-12"><hr><h6 class="text-muted">Contact Information (Optional)</h6></div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">Contact Person</label>
+                                {{ form.contact_person }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Phone</label>
+                                {{ form.contact_phone }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Email</label>
+                                {{ form.contact_email }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Notes</label>
+                                {{ form.notes }}
+                            </div>
+                        </div>
+                        <hr class="my-4">
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'core:income_source_list' %}" class="btn btn-light"><i class="fas fa-arrow-left me-1"></i>Cancel</a>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>{{ action }}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

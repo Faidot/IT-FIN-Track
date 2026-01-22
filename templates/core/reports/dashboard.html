@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Reports - IT FIN Track{% endblock %}
+{% block page_title %}Reports{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="row g-4">
+        <div class="col-lg-3 col-md-6">
+            <a href="{% url 'core:monthly_expense_report' %}" class="card h-100 text-decoration-none">
+                <div class="card-body text-center py-4">
+                    <div class="stat-icon accent mx-auto mb-3"><i class="fas fa-calendar-alt"></i></div>
+                    <h5>Monthly Expenses</h5>
+                    <small class="text-muted">Category-wise monthly breakdown</small>
+                </div>
+            </a>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <a href="{% url 'core:income_expense_statement' %}" class="card h-100 text-decoration-none">
+                <div class="card-body text-center py-4">
+                    <div class="stat-icon success mx-auto mb-3"><i class="fas fa-balance-scale"></i></div>
+                    <h5>Income vs Expense</h5>
+                    <small class="text-muted">Statement with net balance</small>
+                </div>
+            </a>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <a href="{% url 'core:reimbursement_report' %}" class="card h-100 text-decoration-none">
+                <div class="card-body text-center py-4">
+                    <div class="stat-icon warning mx-auto mb-3"><i class="fas fa-hand-holding-usd"></i></div>
+                    <h5>Reimbursements</h5>
+                    <small class="text-muted">Pending & completed</small>
+                </div>
+            </a>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <a href="{% url 'core:audit_trail' %}" class="card h-100 text-decoration-none">
+                <div class="card-body text-center py-4">
+                    <div class="stat-icon primary mx-auto mb-3"><i class="fas fa-history"></i></div>
+                    <h5>Audit Trail</h5>
+                    <small class="text-muted">Complete activity log</small>
+                </div>
+            </a>
+        </div>
+    </div>
+    
+    <div class="card mt-4">
+        <div class="card-header"><h5 class="card-title mb-0"><i class="fas fa-download me-2"></i>Quick Exports</h5></div>
+        <div class="card-body">
+            <a href="{% url 'core:export_excel' 'incomes' %}" class="btn btn-success me-2"><i class="fas fa-file-excel me-1"></i>Export Incomes</a>
+            <a href="{% url 'core:export_excel' 'expenses' %}" class="btn btn-success"><i class="fas fa-file-excel me-1"></i>Export Expenses</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

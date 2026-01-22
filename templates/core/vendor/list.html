@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Vendors - IT FIN Track{% endblock %}
+{% block page_title %}Vendors{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="filter-section">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" name="search" placeholder="Search vendors..." value="{{ search }}">
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-secondary"><i class="fas fa-search me-1"></i>Search</button>
+                <a href="{% url 'core:vendor_list' %}" class="btn btn-light">Clear</a>
+            </div>
+        </form>
+    </div>
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="mb-0">Vendors</h5>
+        {% if request.user.can_edit %}
+        <a href="{% url 'core:vendor_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Add Vendor
+        </a>
+        {% endif %}
+    </div>
+    
+    <div class="row g-4">
+        {% for vendor in vendors %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="mb-1">{{ vendor.name }}</h5>
+                            <small class="text-muted">{{ vendor.contact_person|default:"-" }}</small>
+                        </div>
+                        <div class="action-buttons">
+                            <a href="{% url 'core:vendor_detail' vendor.pk %}" class="btn btn-sm btn-light"><i class="fas fa-eye"></i></a>
+                            {% if request.user.can_edit %}
+                            <a href="{% url 'core:vendor_edit' vendor.pk %}" class="btn btn-sm btn-light"><i class="fas fa-edit"></i></a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <i class="fas fa-envelope me-2 text-muted"></i>{{ vendor.email|default:"-" }}
+                    </div>
+                    <div class="mb-3">
+                        <i class="fas fa-phone me-2 text-muted"></i>{{ vendor.phone|default:"-" }}
+                    </div>
+                    <div class="d-flex justify-content-between border-top pt-3">
+                        <div>
+                            <small class="text-muted">Transactions</small>
+                            <div class="fw-bold">{{ vendor.count_expense }}</div>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted">Total Spent</small>
+                            <div class="fw-bold text-danger">Rs. {{ vendor.total_expense|floatformat:0 }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="empty-state">
+                <div class="empty-state-icon"><i class="fas fa-building"></i></div>
+                <h5 class="empty-state-title">No vendors found</h5>
+                {% if request.user.can_edit %}
+                <a href="{% url 'core:vendor_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Add Vendor
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Income Details - IT FIN Track{% endblock %}
+{% block page_title %}Income Details{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-arrow-down me-2 text-success"></i>Income Details
+                    </h5>
+                    <div>
+                        {% if request.user.can_edit %}
+                        <a href="{% url 'core:income_edit' income.pk %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-edit me-1"></i>Edit
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Source</label>
+                            <div class="fw-bold">
+                                <i class="fas {{ income.source.icon }} me-2" style="color:{{ income.source.color }}"></i>
+                                {{ income.source.name }}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Source Detail</label>
+                            <div class="fw-bold">{{ income.source_detail|default:"-" }}</div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label text-muted">Amount</label>
+                            <div class="amount-positive amount-large">Rs. {{ income.amount|floatformat:2 }}</div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label text-muted">Date</label>
+                            <div class="fw-bold">{{ income.date|date:"d M Y" }}</div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label text-muted">Payment Mode</label>
+                            <div class="fw-bold">{{ income.get_payment_mode_display }}</div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Reference Number</label>
+                            <div class="fw-bold">{{ income.reference_number|default:"-" }}</div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Project/Purpose</label>
+                            <div class="fw-bold">{{ income.project|default:"-" }}</div>
+                        </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label text-muted">Description</label>
+                            <div>{{ income.description|default:"-"|linebreaks }}</div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Status</label>
+                            <div>
+                                {% if income.is_reimbursable %}
+                                    {% if income.reimbursed %}
+                                    <span class="badge bg-success">Reimbursed on {{ income.reimbursed_date|date:"d M Y" }}</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Pending Reimbursement</span>
+                                    {% endif %}
+                                {% else %}
+                                <span class="badge bg-info">Regular Income</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Created By</label>
+                            <div class="fw-bold">
+                                {{ income.created_by.get_full_name|default:income.created_by.username }}
+                                <br><small class="text-muted">{{ income.created_at|date:"d M Y H:i" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <a href="{% url 'core:income_list' %}" class="btn btn-light">
+                        <i class="fas fa-arrow-left me-1"></i>Back to List
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

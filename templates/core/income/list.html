@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}Income - IT FIN Track{% endblock %}
+{% block page_title %}Income{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <input type="text" class="form-control" name="search" placeholder="Search..." value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <select name="source" class="form-select">
+                    <option value="">All Sources</option>
+                    {% for source in sources %}
+                    <option value="{{ source.pk }}" {% if source_filter == source.pk|stringformat:'i' %}selected{% endif %}>{{ source.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <input type="date" class="form-control" name="date_from" value="{{ date_from }}" placeholder="From Date">
+            </div>
+            <div class="col-md-2">
+                <input type="date" class="form-control" name="date_to" value="{{ date_to }}" placeholder="To Date">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-secondary me-2"><i class="fas fa-filter me-1"></i>Filter</button>
+                <a href="{% url 'core:income_list' %}" class="btn btn-light">Clear</a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h5 class="mb-0">Income Records</h5>
+            <small class="text-muted">{{ incomes.paginator.count }} total records</small>
+        </div>
+        {% if request.user.can_edit %}
+        <a href="{% url 'core:income_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Add Income
+        </a>
+        {% endif %}
+    </div>
+    
+    <!-- Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            {% if incomes %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Source</th>
+                            <th>Payment Mode</th>
+                            <th>Reference</th>
+                            <th class="text-end">Amount</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for income in incomes %}
+                        <tr>
+                            <td>{{ income.date|date:"d M Y" }}</td>
+                            <td>
+                                <i class="fas {{ income.source.icon }} me-2" style="color:{{ income.source.color }}"></i>
+                                {{ income.source.name }}
+                                {% if income.source_detail %}
+                                <br><small class="text-muted">{{ income.source_detail }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ income.get_payment_mode_display }}</td>
+                            <td>{{ income.reference_number|default:"-" }}</td>
+                            <td class="text-end amount-positive fw-bold">Rs. {{ income.amount|floatformat:0 }}</td>
+                            <td>
+                                {% if income.is_reimbursable %}
+                                    {% if income.reimbursed %}
+                                    <span class="badge bg-success">Reimbursed</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                {% else %}
+                                <span class="badge bg-info">Regular</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="action-buttons justify-content-end">
+                                    <a href="{% url 'core:income_detail' income.pk %}" class="btn btn-sm btn-light" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if request.user.can_edit %}
+                                    <a href="{% url 'core:income_edit' income.pk %}" class="btn btn-sm btn-light" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                    {% if request.user.can_delete %}
+                                    <a href="{% url 'core:income_delete' income.pk %}" class="btn btn-sm btn-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if incomes.has_other_pages %}
+            <div class="p-3 border-top">
+                <nav>
+                    <ul class="pagination mb-0 justify-content-center">
+                        {% if incomes.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ incomes.previous_page_number }}&search={{ search }}&source={{ source_filter }}">Previous</a>
+                        </li>
+                        {% endif %}
+                        
+                        <li class="page-item disabled">
+                            <span class="page-link">Page {{ incomes.number }} of {{ incomes.paginator.num_pages }}</span>
+                        </li>
+                        
+                        {% if incomes.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ incomes.next_page_number }}&search={{ search }}&source={{ source_filter }}">Next</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="fas fa-inbox"></i>
+                </div>
+                <h5 class="empty-state-title">No income records found</h5>
+                <p class="empty-state-text">Start by adding your first income record.</p>
+                {% if request.user.can_edit %}
+                <a href="{% url 'core:income_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Add Income
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}Income Sources - IT FIN Track{% endblock %}
+{% block page_title %}Income Sources{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="filter-section">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" class="form-control" name="search" placeholder="Search sources..." value="{{ search }}">
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-secondary"><i class="fas fa-search me-1"></i>Search</button>
+                <a href="{% url 'core:income_source_list' %}" class="btn btn-light">Clear</a>
+            </div>
+        </form>
+    </div>
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="mb-0">Income Sources</h5>
+        {% if request.user.is_admin %}
+        <a href="{% url 'core:income_source_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Add Source
+        </a>
+        {% endif %}
+    </div>
+    
+    <div class="row g-4">
+        {% for source in sources %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="stat-icon me-3" style="background:{{ source.color }};width:48px;height:48px;">
+                                <i class="fas {{ source.icon }} text-white"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0">{{ source.name }}</h5>
+                                <small class="text-muted">{{ source.contact_person|default:"-" }}</small>
+                            </div>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'core:income_source_detail' source.pk %}"><i class="fas fa-eye me-2"></i>View</a></li>
+                                {% if request.user.is_admin %}
+                                <li><a class="dropdown-item" href="{% url 'core:income_source_edit' source.pk %}"><i class="fas fa-edit me-2"></i>Edit</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{% url 'core:income_source_delete' source.pk %}"><i class="fas fa-trash me-2"></i>Delete</a></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-3">{{ source.description|truncatewords:15 }}</p>
+                    <div class="d-flex justify-content-between border-top pt-3">
+                        <div>
+                            <small class="text-muted">Transactions</small>
+                            <div class="fw-bold">{{ source.income_count }}</div>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted">Total Income</small>
+                            <div class="fw-bold text-success">Rs. {{ source.total_income|floatformat:0 }}</div>
+                        </div>
+                    </div>
+                    {% if source.pending_reimbursement > 0 %}
+                    <div class="mt-2 text-end">
+                        <span class="badge bg-warning">Pending: Rs. {{ source.pending_reimbursement|floatformat:0 }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="empty-state">
+                <div class="empty-state-icon"><i class="fas fa-coins"></i></div>
+                <h5 class="empty-state-title">No income sources found</h5>
+                <p class="empty-state-text">Add your first income source to start tracking.</p>
+                {% if request.user.is_admin %}
+                <a href="{% url 'core:income_source_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Add Source
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

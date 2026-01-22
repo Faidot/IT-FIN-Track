@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Income vs Expense - IT FIN Track{% endblock %}
+{% block page_title %}Income vs Expense Statement{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="filter-section">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3"><label class="form-label">From</label><input type="date" name="date_from" class="form-control" value="{{ date_from }}"></div>
+            <div class="col-md-3"><label class="form-label">To</label><input type="date" name="date_to" class="form-control" value="{{ date_to }}"></div>
+            <div class="col-md-3"><button type="submit" class="btn btn-primary"><i class="fas fa-filter me-1"></i>Apply</button></div>
+        </form>
+    </div>
+    
+    <div class="row g-4 mb-4">
+        <div class="col-md-4"><div class="stat-card"><div class="stat-icon success"><i class="fas fa-arrow-down"></i></div><div class="stat-content"><div class="stat-label">Total Income</div><div class="stat-value amount-positive">Rs. {{ total_income|floatformat:0 }}</div></div></div></div>
+        <div class="col-md-4"><div class="stat-card"><div class="stat-icon danger"><i class="fas fa-arrow-up"></i></div><div class="stat-content"><div class="stat-label">Total Expense</div><div class="stat-value amount-negative">Rs. {{ total_expense|floatformat:0 }}</div></div></div></div>
+        <div class="col-md-4"><div class="stat-card"><div class="stat-icon accent"><i class="fas fa-balance-scale"></i></div><div class="stat-content"><div class="stat-label">Net Balance</div><div class="stat-value {% if net_balance >= 0 %}amount-positive{% else %}amount-negative{% endif %}">Rs. {{ net_balance|floatformat:0 }}</div></div></div></div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header"><h5 class="card-title mb-0">Income by Source</h5></div>
+        <div class="card-body p-0">
+            <table class="table mb-0"><thead><tr><th>Source</th><th class="text-end">Amount</th></tr></thead>
+            <tbody>{% for item in income_by_source %}<tr><td>{{ item.source }}</td><td class="text-end amount-positive fw-bold">Rs. {{ item.total|floatformat:0 }}</td></tr>{% endfor %}</tbody></table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - IT FIN Track{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-arrow-down me-2 text-success"></i>{{ title }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Source <span class="text-danger">*</span></label>
+                                {{ form.source }}
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label">Source Detail</label>
+                                {{ form.source_detail }}
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">Amount <span class="text-danger">*</span></label>
+                                {{ form.amount }}
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">Date <span class="text-danger">*</span></label>
+                                {{ form.date }}
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">Payment Mode <span class="text-danger">*</span></label>
+                                {{ form.payment_mode }}
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label">Reference Number</label>
+                                {{ form.reference_number }}
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label">Project/Purpose</label>
+                                {{ form.project }}
+                            </div>
+                            
+                            <div class="col-12">
+                                <label class="form-label">Description</label>
+                                {{ form.description }}
+                            </div>
+                            
+                            <div class="col-12">
+                                <div class="form-check">
+                                    {{ form.is_reimbursable }}
+                                    <label class="form-check-label" for="id_is_reimbursable">
+                                        This amount needs to be reimbursed later
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'core:income_list' %}" class="btn btn-light">
+                                <i class="fas fa-arrow-left me-1"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>{{ action }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

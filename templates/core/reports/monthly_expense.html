@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Monthly Expense Report - IT FIN Track{% endblock %}
+{% block page_title %}Monthly Expense Report{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="filter-section">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Year</label>
+                <select name="year" class="form-select">{% for y in years %}<option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>{% endfor %}</select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Month</label>
+                <select name="month" class="form-select">{% for m in months %}<option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m }}</option>{% endfor %}</select>
+            </div>
+            <div class="col-md-3"><button type="submit" class="btn btn-primary"><i class="fas fa-filter me-1"></i>Apply</button></div>
+        </form>
+    </div>
+    
+    <div class="row g-4 mb-4">
+        <div class="col-md-4"><div class="stat-card"><div class="stat-icon danger"><i class="fas fa-receipt"></i></div><div class="stat-content"><div class="stat-label">Total Expenses</div><div class="stat-value">Rs. {{ total_expense|floatformat:0 }}</div><small class="text-muted">{{ month_name }} {{ year }}</small></div></div></div>
+    </div>
+    
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card"><div class="card-header"><h5 class="card-title mb-0">By Category</h5></div><div class="card-body p-0">
+                <table class="table mb-0"><thead><tr><th>Category</th><th>Count</th><th class="text-end">Amount</th></tr></thead>
+                <tbody>{% for item in category_breakdown %}<tr><td><span style="background:{{ item.category__color }};display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;"></span>{{ item.category__name }}</td><td>{{ item.count }}</td><td class="text-end fw-bold">Rs. {{ item.total|floatformat:0 }}</td></tr>{% endfor %}</tbody></table>
+            </div></div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card"><div class="card-header"><h5 class="card-title mb-0">By Vendor</h5></div><div class="card-body p-0">
+                <table class="table mb-0"><thead><tr><th>Vendor</th><th>Count</th><th class="text-end">Amount</th></tr></thead>
+                <tbody>{% for item in vendor_breakdown %}<tr><td>{{ item.vendor__name }}</td><td>{{ item.count }}</td><td class="text-end fw-bold">Rs. {{ item.total|floatformat:0 }}</td></tr>{% empty %}<tr><td colspan="3" class="text-center text-muted">No vendor data</td></tr>{% endfor %}</tbody></table>
+            </div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
