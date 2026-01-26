@@ -1,54 +1,258 @@
 {% extends 'base.html' %}
-{% block title %}Reports - IT FIN Track{% endblock %}
-{% block page_title %}Reports{% endblock %}
+{% block title %}Reports Dashboard - IT FIN Track{% endblock %}
+{% block page_title %}Reports Dashboard{% endblock %}
 
 {% block content %}
 <div class="fade-in">
+    <!-- Quick Stats Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon income"><i class="fas fa-coins"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Total Income (All Time)</div>
+                    <div class="stat-value amount-positive">Rs. {{ total_income|floatformat:0 }}</div>
+                    <small class="text-muted">{{ income_count }} transactions</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon danger"><i class="fas fa-shopping-cart"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Total Expenses (All Time)</div>
+                    <div class="stat-value amount-negative">Rs. {{ total_expense|floatformat:0 }}</div>
+                    <small class="text-muted">{{ expense_count }} transactions</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon {% if net_balance >= 0 %}income{% else %}danger{% endif %}">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Net Balance</div>
+                    <div class="stat-value {% if net_balance >= 0 %}amount-positive{% else %}amount-negative{% endif %}">
+                        Rs. {{ net_balance|floatformat:0 }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon warning"><i class="fas fa-clock"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Pending Reimbursements</div>
+                    <div class="stat-value">Rs. {{ pending_reimbursements|floatformat:0 }}</div>
+                    <small class="text-muted">{{ pending_approvals }} approvals pending</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly & Yearly Summary -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-calendar-alt me-2 text-accent"></i>This Month</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h4 class="amount-positive mb-0">Rs. {{ monthly_income|floatformat:0 }}</h4>
+                            <small class="text-muted">Income</small>
+                        </div>
+                        <div class="col-4">
+                            <h4 class="amount-negative mb-0">Rs. {{ monthly_expense|floatformat:0 }}</h4>
+                            <small class="text-muted">Expenses</small>
+                        </div>
+                        <div class="col-4">
+                            <h4 class="{% if monthly_balance >= 0 %}amount-positive{% else %}amount-negative{% endif %} mb-0">
+                                Rs. {{ monthly_balance|floatformat:0 }}
+                            </h4>
+                            <small class="text-muted">Balance</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-calendar me-2 text-accent"></i>This Year</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h4 class="amount-positive mb-0">Rs. {{ yearly_income|floatformat:0 }}</h4>
+                            <small class="text-muted">Income</small>
+                        </div>
+                        <div class="col-4">
+                            <h4 class="amount-negative mb-0">Rs. {{ yearly_expense|floatformat:0 }}</h4>
+                            <small class="text-muted">Expenses</small>
+                        </div>
+                        <div class="col-4">
+                            <h4 class="{% if yearly_balance >= 0 %}amount-positive{% else %}amount-negative{% endif %} mb-0">
+                                Rs. {{ yearly_balance|floatformat:0 }}
+                            </h4>
+                            <small class="text-muted">Balance</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-chart-line me-2 text-accent"></i>6-Month Trend</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="trendChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-chart-pie me-2 text-accent"></i>Top Categories (This Month)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="categoryChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Links -->
     <div class="row g-4">
         <div class="col-lg-3 col-md-6">
-            <a href="{% url 'core:monthly_expense_report' %}" class="card h-100 text-decoration-none">
-                <div class="card-body text-center py-4">
-                    <div class="stat-icon accent mx-auto mb-3"><i class="fas fa-calendar-alt"></i></div>
-                    <h5>Monthly Expenses</h5>
-                    <small class="text-muted">Category-wise monthly breakdown</small>
+            <a href="{% url 'core:monthly_expense_report' %}" class="card h-100 text-decoration-none hover-lift">
+                <div class="card-body text-center">
+                    <div class="stat-icon mx-auto mb-3" style="background:#DC3545"><i class="fas fa-file-invoice-dollar text-white"></i></div>
+                    <h6>Monthly Expense Report</h6>
+                    <p class="text-muted small mb-0">Detailed expense breakdown by category, vendor, and day</p>
                 </div>
             </a>
         </div>
         <div class="col-lg-3 col-md-6">
-            <a href="{% url 'core:income_expense_statement' %}" class="card h-100 text-decoration-none">
-                <div class="card-body text-center py-4">
-                    <div class="stat-icon success mx-auto mb-3"><i class="fas fa-balance-scale"></i></div>
-                    <h5>Income vs Expense</h5>
-                    <small class="text-muted">Statement with net balance</small>
+            <a href="{% url 'core:income_expense_statement' %}" class="card h-100 text-decoration-none hover-lift">
+                <div class="card-body text-center">
+                    <div class="stat-icon mx-auto mb-3" style="background:#17A2B8"><i class="fas fa-exchange-alt text-white"></i></div>
+                    <h6>Income vs Expense</h6>
+                    <p class="text-muted small mb-0">Compare income and expenses with source breakdown</p>
                 </div>
             </a>
         </div>
         <div class="col-lg-3 col-md-6">
-            <a href="{% url 'core:reimbursement_report' %}" class="card h-100 text-decoration-none">
-                <div class="card-body text-center py-4">
-                    <div class="stat-icon warning mx-auto mb-3"><i class="fas fa-hand-holding-usd"></i></div>
-                    <h5>Reimbursements</h5>
-                    <small class="text-muted">Pending & completed</small>
+            <a href="{% url 'core:reimbursement_report' %}" class="card h-100 text-decoration-none hover-lift">
+                <div class="card-body text-center">
+                    <div class="stat-icon mx-auto mb-3" style="background:#FFC107"><i class="fas fa-hand-holding-usd text-white"></i></div>
+                    <h6>Reimbursement Report</h6>
+                    <p class="text-muted small mb-0">Track pending and completed reimbursements</p>
                 </div>
             </a>
         </div>
         <div class="col-lg-3 col-md-6">
-            <a href="{% url 'core:audit_trail' %}" class="card h-100 text-decoration-none">
-                <div class="card-body text-center py-4">
-                    <div class="stat-icon primary mx-auto mb-3"><i class="fas fa-history"></i></div>
-                    <h5>Audit Trail</h5>
-                    <small class="text-muted">Complete activity log</small>
+            <a href="{% url 'core:audit_trail' %}" class="card h-100 text-decoration-none hover-lift">
+                <div class="card-body text-center">
+                    <div class="stat-icon mx-auto mb-3" style="background:#6F42C1"><i class="fas fa-history text-white"></i></div>
+                    <h6>Audit Trail</h6>
+                    <p class="text-muted small mb-0">View all system activity and changes</p>
                 </div>
             </a>
         </div>
     </div>
-    
+
+    <!-- Export Section -->
     <div class="card mt-4">
-        <div class="card-header"><h5 class="card-title mb-0"><i class="fas fa-download me-2"></i>Quick Exports</h5></div>
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-download me-2 text-accent"></i>Export Data</h5>
+        </div>
         <div class="card-body">
-            <a href="{% url 'core:export_excel' 'incomes' %}" class="btn btn-success me-2"><i class="fas fa-file-excel me-1"></i>Export Incomes</a>
-            <a href="{% url 'core:export_excel' 'expenses' %}" class="btn btn-success"><i class="fas fa-file-excel me-1"></i>Export Expenses</a>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <a href="{% url 'core:export_excel' 'incomes' %}" class="btn btn-success w-100">
+                        <i class="fas fa-file-excel me-2"></i>Export All Incomes (Excel)
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <a href="{% url 'core:export_excel' 'expenses' %}" class="btn btn-danger w-100">
+                        <i class="fas fa-file-excel me-2"></i>Export All Expenses (Excel)
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Trend Chart
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+new Chart(trendCtx, {
+    type: 'line',
+    data: {
+        labels: {{ trend_labels|safe }},
+        datasets: [{
+            label: 'Income',
+            data: {{ trend_income|safe }},
+            borderColor: '#28A745',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            fill: true,
+            tension: 0.4
+        }, {
+            label: 'Expense',
+            data: {{ trend_expense|safe }},
+            borderColor: '#DC3545',
+            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+            fill: true,
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'top' }
+        },
+        scales: {
+            y: { beginAtZero: true }
+        }
+    }
+});
+
+// Category Chart
+const catCtx = document.getElementById('categoryChart').getContext('2d');
+new Chart(catCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ cat_labels|safe }},
+        datasets: [{
+            data: {{ cat_values|safe }},
+            backgroundColor: {{ cat_colors|safe }}
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' }
+        }
+    }
+});
+</script>
+
+<style>
+.hover-lift {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.hover-lift:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+</style>
 {% endblock %}

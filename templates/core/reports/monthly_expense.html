@@ -4,37 +4,280 @@
 
 {% block content %}
 <div class="fade-in">
+    <!-- Filter Section -->
     <div class="filter-section">
         <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Year</label>
-                <select name="year" class="form-select">{% for y in years %}<option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>{% endfor %}</select>
+                <select name="year" class="form-select">
+                    {% for y in years %}
+                    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Month</label>
-                <select name="month" class="form-select">{% for m in months %}<option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m }}</option>{% endfor %}</select>
+                <select name="month" class="form-select">
+                    {% for m in months %}
+                    <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m|date:"F" }}</option>
+                    {% endfor %}
+                </select>
             </div>
-            <div class="col-md-3"><button type="submit" class="btn btn-primary"><i class="fas fa-filter me-1"></i>Apply</button></div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-filter me-1"></i>Apply</button>
+                <a href="{% url 'core:export_excel' 'expenses' %}" class="btn btn-success"><i class="fas fa-file-excel me-1"></i>Export</a>
+            </div>
         </form>
     </div>
-    
+
+    <!-- Summary Stats -->
     <div class="row g-4 mb-4">
-        <div class="col-md-4"><div class="stat-card"><div class="stat-icon danger"><i class="fas fa-receipt"></i></div><div class="stat-content"><div class="stat-label">Total Expenses</div><div class="stat-value">Rs. {{ total_expense|floatformat:0 }}</div><small class="text-muted">{{ month_name }} {{ year }}</small></div></div></div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon danger"><i class="fas fa-receipt"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Total Expenses ({{ month_name }})</div>
+                    <div class="stat-value amount-negative">Rs. {{ total_expense|floatformat:0 }}</div>
+                    <small class="text-muted">{{ transaction_count }} transactions</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon {% if change_percent <= 0 %}income{% else %}danger{% endif %}">
+                    <i class="fas {% if change_percent <= 0 %}fa-arrow-down{% else %}fa-arrow-up{% endif %}"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">vs Last Month</div>
+                    <div class="stat-value {% if change_percent <= 0 %}amount-positive{% else %}amount-negative{% endif %}">
+                        {{ change_percent|floatformat:1 }}%
+                    </div>
+                    <small class="text-muted">Rs. {{ prev_total|floatformat:0 }} prev</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon primary"><i class="fas fa-calculator"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Average Expense</div>
+                    <div class="stat-value">Rs. {{ avg_expense|floatformat:0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon warning"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Highest Expense</div>
+                    <div class="stat-value">Rs. {{ max_expense|floatformat:0 }}</div>
+                </div>
+            </div>
+        </div>
     </div>
-    
-    <div class="row g-4">
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
         <div class="col-lg-6">
-            <div class="card"><div class="card-header"><h5 class="card-title mb-0">By Category</h5></div><div class="card-body p-0">
-                <table class="table mb-0"><thead><tr><th>Category</th><th>Count</th><th class="text-end">Amount</th></tr></thead>
-                <tbody>{% for item in category_breakdown %}<tr><td><span style="background:{{ item.category__color }};display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;"></span>{{ item.category__name }}</td><td>{{ item.count }}</td><td class="text-end fw-bold">Rs. {{ item.total|floatformat:0 }}</td></tr>{% endfor %}</tbody></table>
-            </div></div>
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-chart-pie me-2 text-accent"></i>Category Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="categoryChart" height="200"></canvas>
+                </div>
+            </div>
         </div>
         <div class="col-lg-6">
-            <div class="card"><div class="card-header"><h5 class="card-title mb-0">By Vendor</h5></div><div class="card-body p-0">
-                <table class="table mb-0"><thead><tr><th>Vendor</th><th>Count</th><th class="text-end">Amount</th></tr></thead>
-                <tbody>{% for item in vendor_breakdown %}<tr><td>{{ item.vendor__name }}</td><td>{{ item.count }}</td><td class="text-end fw-bold">Rs. {{ item.total|floatformat:0 }}</td></tr>{% empty %}<tr><td colspan="3" class="text-center text-muted">No vendor data</td></tr>{% endfor %}</tbody></table>
-            </div></div>
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2 text-accent"></i>Daily Spending</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="dailyChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Breakdown Table -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-tags me-2 text-accent"></i>By Category</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr><th>Category</th><th class="text-center">Count</th><th class="text-end">Amount</th><th class="text-end">%</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for cat in category_breakdown %}
+                                <tr>
+                                    <td>
+                                        <span class="badge me-2" style="background:{{ cat.category__color }}">
+                                            <i class="fas {{ cat.category__icon|default:'fa-folder' }}"></i>
+                                        </span>
+                                        {{ cat.category__name|default:"Other" }}
+                                    </td>
+                                    <td class="text-center">{{ cat.count }}</td>
+                                    <td class="text-end fw-bold">Rs. {{ cat.total|floatformat:0 }}</td>
+                                    <td class="text-end">
+                                        <div class="progress" style="height:8px;width:60px;display:inline-block">
+                                            <div class="progress-bar" style="width:{{ cat.percentage }}%;background:{{ cat.category__color }}"></div>
+                                        </div>
+                                        <small class="ms-1">{{ cat.percentage|floatformat:0 }}%</small>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="text-center text-muted py-4">No data</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-building me-2 text-accent"></i>Top Vendors</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr><th>Vendor</th><th class="text-center">Transactions</th><th class="text-end">Amount</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for v in vendor_breakdown %}
+                                <tr>
+                                    <td>{{ v.vendor__name }}</td>
+                                    <td class="text-center">{{ v.count }}</td>
+                                    <td class="text-end fw-bold">Rs. {{ v.total|floatformat:0 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="3" class="text-center text-muted py-4">No vendor data</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Breakdown -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-check-circle me-2 text-accent"></i>Approval Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {% for s in status_breakdown %}
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 text-center">
+                                <h4 class="mb-1">Rs. {{ s.total|floatformat:0 }}</h4>
+                                <span class="badge {% if s.status == 'approved' %}bg-success{% elif s.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                                    {{ s.status|title }}
+                                </span>
+                                <div class="text-muted small mt-1">{{ s.count }} expenses</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Expenses -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0"><i class="fas fa-list me-2 text-accent"></i>Expenses ({{ month_name }} {{ year }})</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if expenses %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Vendor</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for exp in expenses %}
+                        <tr>
+                            <td>{{ exp.date|date:"d M" }}</td>
+                            <td>
+                                <span class="badge" style="background:{{ exp.category.color }}">{{ exp.category.name }}</span>
+                            </td>
+                            <td>{{ exp.vendor.name|default:"-" }}</td>
+                            <td>{{ exp.description|truncatewords:8|default:exp.purpose|truncatewords:8|default:"-" }}</td>
+                            <td>
+                                <span class="badge {% if exp.status == 'approved' %}bg-success{% elif exp.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                                    {{ exp.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="text-end fw-bold amount-negative">Rs. {{ exp.amount|floatformat:0 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-inbox fa-3x mb-3"></i>
+                <p>No expenses found for {{ month_name }} {{ year }}</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Category Chart
+new Chart(document.getElementById('categoryChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+        labels: {{ cat_labels|safe }},
+        datasets: [{
+            data: {{ cat_values|safe }},
+            backgroundColor: {{ cat_colors|safe }}
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' } }
+    }
+});
+
+// Daily Chart
+new Chart(document.getElementById('dailyChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+        labels: {{ daily_labels|safe }},
+        datasets: [{
+            label: 'Daily Spending',
+            data: {{ daily_values|safe }},
+            backgroundColor: '#DC3545'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+    }
+});
+</script>
 {% endblock %}

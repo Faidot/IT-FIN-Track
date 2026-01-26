@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+{% block title %}Batch Expense Entry - IT FIN Track{% endblock %}
+{% block page_title %}Batch Expense Entry{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-layer-group me-2 text-accent"></i>Enter Multiple Expenses
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Batch Entry:</strong> Enter multiple expenses at once from the same income source and date.
+                All expenses will be created as <strong>Pending</strong> and need approval before affecting totals.
+            </div>
+            
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- Common Fields -->
+                <div class="row g-3 mb-4 pb-3 border-bottom">
+                    <div class="col-md-5">
+                        <label class="form-label">Linked Income <span class="text-danger">*</span></label>
+                        <select name="linked_income" class="form-select" required>
+                            <option value="">-- Select Income Source --</option>
+                            {% for income in incomes %}
+                            <option value="{{ income.pk }}">{{ income.source.name }} - Rs. {{ income.amount|floatformat:0 }} ({{ income.date|date:"d M Y" }})</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">All expenses will be linked to this income</small>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Date <span class="text-danger">*</span></label>
+                        <input type="date" name="date" class="form-control" required value="{% now 'Y-m-d' %}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Bill Attachment Mode</label>
+                        <select name="bill_mode" id="billMode" class="form-select" onchange="toggleBillMode()">
+                            <option value="none">No Bills</option>
+                            <option value="common">One Bill for All Entries</option>
+                            <option value="individual">Individual Bill per Entry</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Common Bill Upload (hidden by default) -->
+                <div id="commonBillSection" class="mb-4 pb-3 border-bottom" style="display:none">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-file-invoice me-1"></i>Common Bill (for all entries)</label>
+                            <input type="file" name="common_bill" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                            <small class="text-muted">This bill will be attached to all expense entries</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="d-flex justify-content-between mb-3">
+                    <button type="button" class="btn btn-success" onclick="addRow()">
+                        <i class="fas fa-plus me-1"></i>Add Row
+                    </button>
+                    <span class="badge bg-primary fs-6" id="rowCountBadge">1 Entry</span>
+                </div>
+                
+                <!-- Expense Rows -->
+                <div class="table-responsive">
+                    <table class="table table-sm" id="expenseTable">
+                        <thead>
+                            <tr>
+                                <th style="width:5%">#</th>
+                                <th style="width:18%">Category <span class="text-danger">*</span></th>
+                                <th style="width:15%">Vendor</th>
+                                <th style="width:12%">Amount <span class="text-danger">*</span></th>
+                                <th style="width:18%">Description</th>
+                                <th style="width:15%">Purpose</th>
+                                <th class="billColumn" style="width:12%;display:none">Bill</th>
+                                <th style="width:5%"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="expenseRows">
+                            <tr>
+                                <td class="text-center align-middle"><span class="badge bg-secondary">1</span></td>
+                                <td>
+                                    <select name="category[]" class="form-select form-select-sm" required>
+                                        <option value="">Select</option>
+                                        {% for cat in categories %}
+                                        <option value="{{ cat.pk }}">{{ cat.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td>
+                                    <select name="vendor[]" class="form-select form-select-sm">
+                                        <option value="">None</option>
+                                        {% for v in vendors %}
+                                        <option value="{{ v.pk }}">{{ v.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="number" name="amount[]" class="form-control form-control-sm amount-input" step="0.01" min="0" required placeholder="0.00" onchange="calculateTotal()" onkeyup="calculateTotal()">
+                                </td>
+                                <td>
+                                    <input type="text" name="description[]" class="form-control form-control-sm" placeholder="Item">
+                                </td>
+                                <td>
+                                    <input type="text" name="purpose[]" class="form-control form-control-sm" placeholder="Purpose">
+                                </td>
+                                <td class="billColumn" style="display:none">
+                                    <input type="file" name="bill[]" class="form-control form-control-sm" accept=".pdf,.jpg,.jpeg,.png">
+                                </td>
+                                <td class="text-center align-middle">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(this)" title="Remove">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-light">
+                                <td colspan="3" class="text-end fw-bold">Total:</td>
+                                <td class="fw-bold text-danger"><span id="totalAmount">Rs. 0</span></td>
+                                <td colspan="4"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                
+                <hr class="my-4">
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'core:expense_list' %}" class="btn btn-light">
+                        <i class="fas fa-arrow-left me-1"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save me-1"></i>Save All Expenses
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let rowCount = 1;
+
+function toggleBillMode() {
+    const mode = document.getElementById('billMode').value;
+    const commonSection = document.getElementById('commonBillSection');
+    const billColumns = document.querySelectorAll('.billColumn');
+    
+    // Reset
+    commonSection.style.display = 'none';
+    billColumns.forEach(col => col.style.display = 'none');
+    
+    if (mode === 'common') {
+        commonSection.style.display = 'block';
+    } else if (mode === 'individual') {
+        billColumns.forEach(col => col.style.display = '');
+    }
+}
+
+function addRow() {
+    rowCount++;
+    const tbody = document.getElementById('expenseRows');
+    const billMode = document.getElementById('billMode').value;
+    const showBill = billMode === 'individual' ? '' : 'display:none';
+    
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <td class="text-center align-middle"><span class="badge bg-secondary">${rowCount}</span></td>
+        <td>
+            <select name="category[]" class="form-select form-select-sm" required>
+                <option value="">Select</option>
+                {% for cat in categories %}
+                <option value="{{ cat.pk }}">{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </td>
+        <td>
+            <select name="vendor[]" class="form-select form-select-sm">
+                <option value="">None</option>
+                {% for v in vendors %}
+                <option value="{{ v.pk }}">{{ v.name }}</option>
+                {% endfor %}
+            </select>
+        </td>
+        <td>
+            <input type="number" name="amount[]" class="form-control form-control-sm amount-input" step="0.01" min="0" required placeholder="0.00" onchange="calculateTotal()" onkeyup="calculateTotal()">
+        </td>
+        <td>
+            <input type="text" name="description[]" class="form-control form-control-sm" placeholder="Item">
+        </td>
+        <td>
+            <input type="text" name="purpose[]" class="form-control form-control-sm" placeholder="Purpose">
+        </td>
+        <td class="billColumn" style="${showBill}">
+            <input type="file" name="bill[]" class="form-control form-control-sm" accept=".pdf,.jpg,.jpeg,.png">
+        </td>
+        <td class="text-center align-middle">
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow(this)" title="Remove">
+                <i class="fas fa-times"></i>
+            </button>
+        </td>
+    `;
+    tbody.appendChild(newRow);
+    updateRowNumbers();
+}
+
+function removeRow(btn) {
+    const tbody = document.getElementById('expenseRows');
+    if (tbody.children.length > 1) {
+        btn.closest('tr').remove();
+        updateRowNumbers();
+        calculateTotal();
+    }
+}
+
+function updateRowNumbers() {
+    const rows = document.querySelectorAll('#expenseRows tr');
+    rows.forEach((row, index) => {
+        row.querySelector('.badge').textContent = index + 1;
+    });
+    rowCount = rows.length;
+    document.getElementById('rowCountBadge').textContent = rowCount + (rowCount === 1 ? ' Entry' : ' Entries');
+}
+
+function calculateTotal() {
+    let total = 0;
+    document.querySelectorAll('input[name="amount[]"]').forEach(input => {
+        total += parseFloat(input.value) || 0;
+    });
+    document.getElementById('totalAmount').textContent = 'Rs. ' + total.toLocaleString('en-IN', {maximumFractionDigits: 0});
+}
+</script>
+{% endblock %}

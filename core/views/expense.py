@@ -201,16 +201,20 @@ def expense_approve(request, pk):
     
     if not request.user.can_approve:
         messages.error(request, 'You do not have permission to approve expenses.')
-        return redirect('core:expense_detail', pk=pk)
+        return redirect('core:expense_list')
     
     if request.method == 'POST':
         expense.status = Expense.Status.APPROVED
         expense.approved_by = request.user
         expense.approved_date = timezone.now()
         expense.save()
-        messages.success(request, 'Expense approved successfully!')
+        messages.success(request, f'Expense #{pk} approved successfully!')
     
-    return redirect('core:expense_detail', pk=pk)
+    # Redirect back to referrer or expense list
+    next_url = request.POST.get('next', request.GET.get('next', ''))
+    if next_url:
+        return redirect(next_url)
+    return redirect('core:expense_list')
 
 
 @login_required
@@ -249,3 +253,101 @@ def bill_delete(request, pk):
         messages.success(request, 'Bill deleted successfully!')
     
     return redirect('core:expense_detail', pk=expense_pk)
+
+@login_required
+def expense_batch_create(request):
+    """Create multiple expense records at once from the same income source."""
+    if not request.user.can_edit:
+        messages.error(request, 'You do not have permission to create expense records.')
+        return redirect('core:expense_list')
+    
+    categories = Category.objects.filter(is_soft_deleted=False, is_active=True)
+    vendors = Vendor.objects.filter(is_soft_deleted=False, is_active=True)
+    incomes = Income.objects.filter(is_soft_deleted=False).select_related('source').order_by('-date')[:50]
+    
+    if request.method == 'POST':
+        from decimal import Decimal, InvalidOperation
+        
+        # Get common fields
+        linked_income_id = request.POST.get('linked_income', '')
+        common_date = request.POST.get('date', '')
+        bill_mode = request.POST.get('bill_mode', 'none')  # none, common, individual
+        common_bill = request.FILES.get('common_bill')
+        
+        # Get expense rows
+        descriptions = request.POST.getlist('description[]')
+        amounts = request.POST.getlist('amount[]')
+        category_ids = request.POST.getlist('category[]')
+        vendor_ids = request.POST.getlist('vendor[]')
+        purposes = request.POST.getlist('purpose[]')
+        individual_bills = request.FILES.getlist('bill[]')
+        
+        created_count = 0
+        created_expenses = []
+        linked_income = None
+        if linked_income_id:
+            linked_income = Income.objects.filter(pk=linked_income_id).first()
+        
+        for i in range(len(amounts)):
+            try:
+                amount_val = Decimal(amounts[i]) if amounts[i] else Decimal('0')
+            except (InvalidOperation, ValueError):
+                amount_val = Decimal('0')
+            
+            if amount_val > 0:
+                category = None
+                if i < len(category_ids) and category_ids[i]:
+                    category = Category.objects.filter(pk=category_ids[i]).first()
+                
+                vendor = None
+                if i < len(vendor_ids) and vendor_ids[i]:
+                    vendor = Vendor.objects.filter(pk=vendor_ids[i]).first()
+                
+                expense = Expense.objects.create(
+                    linked_income=linked_income,
+                    category=category,
+                    vendor=vendor,
+                    amount=amount_val,
+                    date=common_date,
+                    description=descriptions[i] if i < len(descriptions) else '',
+                    purpose=purposes[i] if i < len(purposes) else '',
+                    created_by=request.user,
+                    status='pending'
+                )
+                created_expenses.append(expense)
+                created_count += 1
+                
+                # Attach individual bill if provided
+                if bill_mode == 'individual' and i < len(individual_bills) and individual_bills[i]:
+                    ExpenseBill.objects.create(
+                        expense=expense,
+                        file=individual_bills[i],
+                        original_filename=individual_bills[i].name,
+                        uploaded_by=request.user
+                    )
+        
+        # Attach common bill to all expenses
+        if bill_mode == 'common' and common_bill and created_expenses:
+            for expense in created_expenses:
+                # Create a copy of the file for each expense
+                ExpenseBill.objects.create(
+                    expense=expense,
+                    file=common_bill,
+                    original_filename=common_bill.name,
+                    description='Common bill for batch entry',
+                    uploaded_by=request.user
+                )
+        
+        if created_count > 0:
+            messages.success(request, f'{created_count} expense records created successfully! Waiting for approval.')
+        else:
+            messages.warning(request, 'No valid expenses to create. Please check amounts.')
+        
+        return redirect('core:expense_list')
+    
+    return render(request, 'core/expense/batch_form.html', {
+        'categories': categories,
+        'vendors': vendors,
+        'incomes': incomes,
+    })
+

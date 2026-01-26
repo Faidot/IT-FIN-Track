@@ -14,10 +14,10 @@ from core.forms import CategoryForm
 @login_required
 def category_list(request):
     """List all categories with expense totals."""
-    # Filter out soft-deleted expenses in the aggregation
+    # Filter: only approved, non-deleted expenses count
     categories = Category.objects.filter(is_soft_deleted=False).annotate(
-        total_expense=Sum('expenses__amount', filter=Q(expenses__is_soft_deleted=False), default=0),
-        count_expense=Count('expenses', filter=Q(expenses__is_soft_deleted=False))
+        total_expense=Sum('expenses__amount', filter=Q(expenses__is_soft_deleted=False, expenses__status='approved'), default=0),
+        count_expense=Count('expenses', filter=Q(expenses__is_soft_deleted=False, expenses__status='approved'))
     ).order_by('name')
     
     return render(request, 'core/category/list.html', {'categories': categories})

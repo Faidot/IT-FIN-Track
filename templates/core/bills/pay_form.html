@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Pay Bill - {{ bill.name }} - IT FIN Track{% endblock %}
+{% block page_title %}Pay Bill: {{ bill.name }}{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-credit-card me-2 text-accent"></i>Record Payment
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>{{ bill.name }}</strong><br>
+                                <small>Period: {{ payment.period_start|date:"d M" }} - {{ payment.period_end|date:"d M Y" }}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-{{ bill.category.color|default:'secondary' }}">{{ bill.category.name }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Amount <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rs.</span>
+                                <input type="number" name="amount" class="form-control form-control-lg" step="0.01" 
+                                       min="0" required value="{{ payment.amount }}">
+                            </div>
+                            <small class="text-muted">Base amount: Rs. {{ bill.base_amount|floatformat:0 }}. Adjust if different this period.</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Paid Date <span class="text-danger">*</span></label>
+                            <input type="date" name="paid_date" class="form-control" required value="{% now 'Y-m-d' %}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea name="notes" class="form-control" rows="2" placeholder="Optional notes..."></textarea>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle me-2"></i>
+                            This will create an <strong>expense record</strong> pending approval.
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'core:recurring_bill_detail' bill.pk %}" class="btn btn-light">
+                                <i class="fas fa-arrow-left me-1"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check me-1"></i>Mark as Paid
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

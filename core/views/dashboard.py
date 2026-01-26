@@ -1,5 +1,6 @@
 """
 Dashboard view for IT FIN Track.
+Only approved expenses are counted in totals and charts.
 """
 
 from datetime import datetime, timedelta
@@ -24,16 +25,17 @@ def dashboard(request):
     # Date range for current year
     first_day_of_year = today.replace(month=1, day=1)
     
-    # Calculate totals
+    # Calculate totals (only APPROVED expenses count)
     total_income = Income.objects.filter(
         is_soft_deleted=False
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
     
     total_expense = Expense.objects.filter(
-        is_soft_deleted=False
+        is_soft_deleted=False,
+        status='approved'  # Only approved expenses
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
     
-    # Monthly totals
+    # Monthly totals (only APPROVED expenses)
     monthly_income = Income.objects.filter(
         is_soft_deleted=False,
         date__gte=first_day_of_month
@@ -41,6 +43,7 @@ def dashboard(request):
     
     monthly_expense = Expense.objects.filter(
         is_soft_deleted=False,
+        status='approved',  # Only approved expenses
         date__gte=first_day_of_month
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
     
@@ -54,15 +57,21 @@ def dashboard(request):
         reimbursed=False
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
     
-    # Pending approvals
+    # Pending approvals (expenses waiting for approval)
     pending_approvals = Expense.objects.filter(
         is_soft_deleted=False,
         status='pending'
     ).count()
     
-    # Category breakdown for chart
+    pending_approval_amount = Expense.objects.filter(
+        is_soft_deleted=False,
+        status='pending'
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    
+    # Category breakdown for chart (only APPROVED expenses)
     category_breakdown = Expense.objects.filter(
         is_soft_deleted=False,
+        status='approved',  # Only approved expenses
         date__gte=first_day_of_year
     ).values(
         'category__name', 'category__color'
@@ -70,7 +79,7 @@ def dashboard(request):
         total=Sum('amount')
     ).order_by('-total')[:8]
     
-    # Monthly trend for chart (last 6 months)
+    # Monthly trend for chart (last 6 months, all income, only approved expenses)
     six_months_ago = today - timedelta(days=180)
     
     monthly_income_trend = Income.objects.filter(
@@ -84,6 +93,7 @@ def dashboard(request):
     
     monthly_expense_trend = Expense.objects.filter(
         is_soft_deleted=False,
+        status='approved',  # Only approved expenses
         date__gte=six_months_ago
     ).annotate(
         month=TruncMonth('date')
@@ -91,7 +101,7 @@ def dashboard(request):
         total=Sum('amount')
     ).order_by('month')
     
-    # Recent transactions
+    # Recent transactions (show all expenses for tracking, but mark status)
     recent_incomes = Income.objects.filter(
         is_soft_deleted=False
     ).select_related('source', 'created_by').order_by('-date', '-created_at')[:5]
@@ -143,6 +153,7 @@ def dashboard(request):
         'monthly_expense': monthly_expense,
         'pending_reimbursements': pending_reimbursements,
         'pending_approvals': pending_approvals,
+        'pending_approval_amount': pending_approval_amount,
         'recent_incomes': recent_incomes,
         'recent_expenses': recent_expenses,
         'income_trend_labels': income_trend_labels,

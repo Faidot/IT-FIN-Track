@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}{{ user_obj.get_full_name }} - IT FIN Track{% endblock %}
+{% block page_title %}User Details{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="row">
+        <!-- User Info Card -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="stat-icon mx-auto mb-3" style="width:80px;height:80px;font-size:2rem;background:{% if user_obj.is_active %}#28A745{% else %}#6c757d{% endif %}">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                    <h4 class="mb-1">{{ user_obj.get_full_name }}</h4>
+                    <p class="text-muted mb-2">@{{ user_obj.username }}</p>
+                    <span class="badge {% if user_obj.role == 'admin' %}bg-danger{% elif user_obj.role == 'manager' %}bg-warning{% else %}bg-secondary{% endif %} mb-3">
+                        {{ user_obj.get_role_display }}
+                    </span>
+                    <div class="mb-2">
+                        {% if user_obj.is_active %}
+                        <span class="badge bg-success">Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body border-top">
+                    <div class="mb-2">
+                        <i class="fas fa-envelope me-2 text-accent"></i>{{ user_obj.email|default:"-" }}
+                    </div>
+                    <div class="mb-2">
+                        <i class="fas fa-building me-2 text-accent"></i>{{ user_obj.department|default:"-" }}
+                    </div>
+                    <div class="mb-2">
+                        <i class="fas fa-phone me-2 text-accent"></i>{{ user_obj.phone|default:"-" }}
+                    </div>
+                    <div class="mb-2">
+                        <i class="fas fa-calendar me-2 text-accent"></i>Joined: {{ user_obj.date_joined|date:"d M Y" }}
+                    </div>
+                    <div>
+                        <i class="fas fa-clock me-2 text-accent"></i>Last Login: {{ user_obj.last_login|date:"d M Y H:i"|default:"Never" }}
+                    </div>
+                </div>
+                <div class="card-body border-top">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'core:user_edit' user_obj.pk %}" class="btn btn-primary">
+                            <i class="fas fa-edit me-1"></i>Edit User
+                        </a>
+                        <a href="{% url 'core:user_reset_password' user_obj.pk %}" class="btn btn-warning">
+                            <i class="fas fa-key me-1"></i>Reset Password
+                        </a>
+                        <a href="{% url 'core:user_list' %}" class="btn btn-light">
+                            <i class="fas fa-arrow-left me-1"></i>Back to List
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Activity -->
+        <div class="col-lg-8">
+            <!-- Recent Incomes -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-arrow-down me-2 text-success"></i>Recent Incomes</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_incomes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Source</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for income in recent_incomes %}
+                                <tr>
+                                    <td>{{ income.date|date:"d M Y" }}</td>
+                                    <td>{{ income.source.name }}</td>
+                                    <td class="text-end fw-bold amount-positive">Rs. {{ income.amount|floatformat:0 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-muted">No income records</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Recent Expenses -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-arrow-up me-2 text-danger"></i>Recent Expenses</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_expenses %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Category</th>
+                                    <th>Vendor</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for expense in recent_expenses %}
+                                <tr>
+                                    <td>{{ expense.date|date:"d M Y" }}</td>
+                                    <td>{{ expense.category.name }}</td>
+                                    <td>{{ expense.vendor.name|default:"-" }}</td>
+                                    <td class="text-end fw-bold amount-negative">Rs. {{ expense.amount|floatformat:0 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-muted">No expense records</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

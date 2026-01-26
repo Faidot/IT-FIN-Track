@@ -1,29 +1,278 @@
 {% extends 'base.html' %}
-{% block title %}Income vs Expense - IT FIN Track{% endblock %}
+{% block title %}Income vs Expense Statement - IT FIN Track{% endblock %}
 {% block page_title %}Income vs Expense Statement{% endblock %}
 
 {% block content %}
 <div class="fade-in">
+    <!-- Filter Section -->
     <div class="filter-section">
         <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-3"><label class="form-label">From</label><input type="date" name="date_from" class="form-control" value="{{ date_from }}"></div>
-            <div class="col-md-3"><label class="form-label">To</label><input type="date" name="date_to" class="form-control" value="{{ date_to }}"></div>
-            <div class="col-md-3"><button type="submit" class="btn btn-primary"><i class="fas fa-filter me-1"></i>Apply</button></div>
+            <div class="col-md-2">
+                <label class="form-label">From Date</label>
+                <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To Date</label>
+                <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-filter me-1"></i>Apply</button>
+                <a href="{% url 'core:income_expense_statement' %}" class="btn btn-light">Reset</a>
+            </div>
         </form>
     </div>
-    
+
+    <!-- Summary Stats -->
     <div class="row g-4 mb-4">
-        <div class="col-md-4"><div class="stat-card"><div class="stat-icon success"><i class="fas fa-arrow-down"></i></div><div class="stat-content"><div class="stat-label">Total Income</div><div class="stat-value amount-positive">Rs. {{ total_income|floatformat:0 }}</div></div></div></div>
-        <div class="col-md-4"><div class="stat-card"><div class="stat-icon danger"><i class="fas fa-arrow-up"></i></div><div class="stat-content"><div class="stat-label">Total Expense</div><div class="stat-value amount-negative">Rs. {{ total_expense|floatformat:0 }}</div></div></div></div>
-        <div class="col-md-4"><div class="stat-card"><div class="stat-icon accent"><i class="fas fa-balance-scale"></i></div><div class="stat-content"><div class="stat-label">Net Balance</div><div class="stat-value {% if net_balance >= 0 %}amount-positive{% else %}amount-negative{% endif %}">Rs. {{ net_balance|floatformat:0 }}</div></div></div></div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon income"><i class="fas fa-arrow-down"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Total Income</div>
+                    <div class="stat-value amount-positive">Rs. {{ total_income|floatformat:0 }}</div>
+                    <small class="text-muted">{{ income_count }} entries | Avg: Rs. {{ avg_income|floatformat:0 }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon danger"><i class="fas fa-arrow-up"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Total Expense</div>
+                    <div class="stat-value amount-negative">Rs. {{ total_expense|floatformat:0 }}</div>
+                    <small class="text-muted">{{ expense_count }} entries | Avg: Rs. {{ avg_expense|floatformat:0 }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon {% if net_balance >= 0 %}income{% else %}danger{% endif %}">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Net Balance</div>
+                    <div class="stat-value {% if net_balance >= 0 %}amount-positive{% else %}amount-negative{% endif %}">
+                        Rs. {{ net_balance|floatformat:0 }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon primary"><i class="fas fa-percentage"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Expense Ratio</div>
+                    <div class="stat-value">
+                        {% if total_income > 0 %}
+                        {{ total_expense|floatformat:0|add:".0" }}%
+                        {% else %}0%{% endif %}
+                    </div>
+                    <small class="text-muted">of total income spent</small>
+                </div>
+            </div>
+        </div>
     </div>
-    
-    <div class="card">
-        <div class="card-header"><h5 class="card-title mb-0">Income by Source</h5></div>
-        <div class="card-body p-0">
-            <table class="table mb-0"><thead><tr><th>Source</th><th class="text-end">Amount</th></tr></thead>
-            <tbody>{% for item in income_by_source %}<tr><td>{{ item.source }}</td><td class="text-end amount-positive fw-bold">Rs. {{ item.total|floatformat:0 }}</td></tr>{% endfor %}</tbody></table>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-chart-pie me-2 text-success"></i>Income by Source</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="incomeChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-chart-pie me-2 text-danger"></i>Expense by Category</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="expenseChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Breakdown Tables -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0"><i class="fas fa-coins me-2"></i>Income by Source</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr><th>Source</th><th class="text-center">Count</th><th class="text-end">Amount</th><th class="text-end">%</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for src in income_by_source %}
+                                <tr>
+                                    <td>
+                                        <span class="badge me-2" style="background:{{ src.source__color }}">
+                                            <i class="fas {{ src.source__icon|default:'fa-money-bill' }}"></i>
+                                        </span>
+                                        {{ src.source__name|default:"Other" }}
+                                    </td>
+                                    <td class="text-center">{{ src.count }}</td>
+                                    <td class="text-end fw-bold amount-positive">Rs. {{ src.total|floatformat:0 }}</td>
+                                    <td class="text-end">
+                                        <div class="progress" style="height:8px;width:60px;display:inline-block">
+                                            <div class="progress-bar bg-success" style="width:{{ src.percentage }}%"></div>
+                                        </div>
+                                        <small class="ms-1">{{ src.percentage|floatformat:0 }}%</small>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="text-center text-muted py-4">No income data</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0"><i class="fas fa-shopping-cart me-2"></i>Expense by Category</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr><th>Category</th><th class="text-center">Count</th><th class="text-end">Amount</th><th class="text-end">%</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for cat in expense_by_category %}
+                                <tr>
+                                    <td>
+                                        <span class="badge me-2" style="background:{{ cat.category__color }}">
+                                            <i class="fas {{ cat.category__icon|default:'fa-folder' }}"></i>
+                                        </span>
+                                        {{ cat.category__name|default:"Other" }}
+                                    </td>
+                                    <td class="text-center">{{ cat.count }}</td>
+                                    <td class="text-end fw-bold amount-negative">Rs. {{ cat.total|floatformat:0 }}</td>
+                                    <td class="text-end">
+                                        <div class="progress" style="height:8px;width:60px;display:inline-block">
+                                            <div class="progress-bar bg-danger" style="width:{{ cat.percentage }}%"></div>
+                                        </div>
+                                        <small class="ms-1">{{ cat.percentage|floatformat:0 }}%</small>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="text-center text-muted py-4">No expense data</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modes -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-credit-card me-2 text-accent"></i>Income by Payment Mode</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                {% for pm in payment_modes %}
+                <div class="col-md-3">
+                    <div class="border rounded p-3 text-center">
+                        <i class="fas {% if pm.payment_mode == 'cash' %}fa-money-bill-wave{% elif pm.payment_mode == 'bank' %}fa-university{% elif pm.payment_mode == 'online' %}fa-globe{% else %}fa-file-alt{% endif %} fa-2x text-accent mb-2"></i>
+                        <h5 class="mb-1">Rs. {{ pm.total|floatformat:0 }}</h5>
+                        <small class="text-muted">{{ pm.payment_mode|title }} ({{ pm.count }})</small>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center text-muted py-3">No payment data</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">Recent Income</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height:400px;overflow-y:auto">
+                        <table class="table table-hover mb-0">
+                            <thead><tr><th>Date</th><th>Source</th><th class="text-end">Amount</th></tr></thead>
+                            <tbody>
+                                {% for inc in incomes %}
+                                <tr>
+                                    <td>{{ inc.date|date:"d M" }}</td>
+                                    <td>{{ inc.source.name }}</td>
+                                    <td class="text-end fw-bold amount-positive">+Rs. {{ inc.amount|floatformat:0 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="3" class="text-center text-muted py-4">No income records</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">Recent Expenses</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height:400px;overflow-y:auto">
+                        <table class="table table-hover mb-0">
+                            <thead><tr><th>Date</th><th>Category</th><th class="text-end">Amount</th></tr></thead>
+                            <tbody>
+                                {% for exp in expenses %}
+                                <tr>
+                                    <td>{{ exp.date|date:"d M" }}</td>
+                                    <td>{{ exp.category.name }}</td>
+                                    <td class="text-end fw-bold amount-negative">-Rs. {{ exp.amount|floatformat:0 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="3" class="text-center text-muted py-4">No expense records</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Income Chart
+new Chart(document.getElementById('incomeChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+        labels: {{ inc_labels|safe }},
+        datasets: [{ data: {{ inc_values|safe }}, backgroundColor: {{ inc_colors|safe }} }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+});
+// Expense Chart
+new Chart(document.getElementById('expenseChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+        labels: {{ exp_labels|safe }},
+        datasets: [{ data: {{ exp_values|safe }}, backgroundColor: {{ exp_colors|safe }} }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+});
+</script>
 {% endblock %}

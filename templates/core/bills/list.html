@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% block title %}Recurring Bills - IT FIN Track{% endblock %}
+{% block page_title %}Recurring Bills{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Summary Stats -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon warning"><i class="fas fa-clock"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Pending Payments</div>
+                    <div class="stat-value">Rs. {{ pending_total|floatformat:0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon income"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Paid This Month</div>
+                    <div class="stat-value">Rs. {{ paid_this_month|floatformat:0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon primary"><i class="fas fa-sync"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Active Bills</div>
+                    <div class="stat-value">{{ bills|length }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Actions -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <form method="get" class="d-flex gap-2">
+                <input type="text" name="search" class="form-control" style="width:200px" placeholder="Search..." value="{{ search }}">
+                <select name="status" class="form-select" style="width:150px" onchange="this.form.submit()">
+                    <option value="">All Status</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+                <button type="submit" class="btn btn-secondary"><i class="fas fa-filter"></i></button>
+            </form>
+        </div>
+        {% if request.user.can_edit %}
+        <a href="{% url 'core:recurring_bill_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Add Recurring Bill
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Bills Grid -->
+    <div class="row g-4">
+        {% for bill in bills %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 {% if bill.is_overdue %}border-danger{% endif %}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-sync-alt me-2 text-accent"></i>{{ bill.name }}
+                    </h6>
+                    {% if bill.is_overdue %}
+                    <span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i>Overdue</span>
+                    {% elif bill.pending_payment %}
+                    <span class="badge bg-warning text-dark">Pending</span>
+                    {% else %}
+                    <span class="badge bg-success">Paid</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <span class="badge" style="background:{{ bill.category.color }}">{{ bill.category.name }}</span>
+                        {% if bill.vendor %}
+                        <small class="text-muted ms-2">{{ bill.vendor.name }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Amount:</span>
+                        <strong>Rs. {{ bill.base_amount|floatformat:0 }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Frequency:</span>
+                        <span class="badge bg-secondary">{{ bill.get_frequency_display }}</span>
+                    </div>
+                    {% if bill.pending_payment %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Due Date:</span>
+                        <span class="{% if bill.is_overdue %}text-danger fw-bold{% endif %}">
+                            {{ bill.pending_payment.due_date|date:"d M Y" }}
+                        </span>
+                    </div>
+                    {% endif %}
+                    <hr>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'core:recurring_bill_detail' bill.pk %}" class="btn btn-sm btn-light flex-grow-1">
+                            <i class="fas fa-eye me-1"></i>View
+                        </a>
+                        {% if bill.pending_payment and request.user.can_edit %}
+                        <a href="{% url 'core:recurring_bill_pay' bill.pk %}" class="btn btn-sm btn-success flex-grow-1">
+                            <i class="fas fa-check me-1"></i>Pay
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent text-muted small">
+                    {% if not bill.is_active %}<span class="badge bg-secondary me-2">Inactive</span>{% endif %}
+                    Next: {{ bill.get_next_due_date|date:"d M Y" }}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                    <h5>No Recurring Bills</h5>
+                    <p class="text-muted">Add your first recurring bill like Internet, Hosting, etc.</p>
+                    {% if request.user.can_edit %}
+                    <a href="{% url 'core:recurring_bill_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Add Recurring Bill
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

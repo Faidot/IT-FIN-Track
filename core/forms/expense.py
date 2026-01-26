@@ -32,7 +32,8 @@ class ExpenseForm(forms.ModelForm):
         self.fields['vendor'].required = False
         self.fields['linked_income'].required = False
         self.fields['vendor'].empty_label = "-- Select Vendor (Optional) --"
-        self.fields['linked_income'].empty_label = "-- Select Income Source (Optional) --"
+        self.fields['linked_income'].empty_label = "-- Link to Income Entry (Optional) --"
+        self.fields['linked_income'].label = "Linked Income"
     
     def clean_amount(self):
         amount = self.cleaned_data.get('amount')

@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+{% block title %}Users - IT FIN Track{% endblock %}
+{% block page_title %}User Management{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <input type="text" class="form-control" name="search" placeholder="Search users..." value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <select name="role" class="form-select">
+                    <option value="">All Roles</option>
+                    {% for value, label in roles %}
+                    <option value="{{ value }}" {% if role_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-secondary"><i class="fas fa-filter me-1"></i>Filter</button>
+                <a href="{% url 'core:user_list' %}" class="btn btn-light">Clear</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h5 class="mb-0">Users</h5>
+            <small class="text-muted">{{ users.paginator.count }} total users</small>
+        </div>
+        <a href="{% url 'core:user_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Add User
+        </a>
+    </div>
+
+    <!-- Users Grid -->
+    <div class="row g-4">
+        {% for user_obj in users %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="stat-icon me-3" style="width:48px;height:48px;background:{% if user_obj.is_active %}#28A745{% else %}#6c757d{% endif %}">
+                                <i class="fas fa-user text-white"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">{{ user_obj.get_full_name|default:user_obj.username }}</h6>
+                                <small class="text-muted">@{{ user_obj.username }}</small>
+                            </div>
+                        </div>
+                        <span class="badge {% if user_obj.role == 'admin' %}bg-danger{% elif user_obj.role == 'manager' %}bg-warning{% else %}bg-secondary{% endif %}">
+                            {{ user_obj.get_role_display }}
+                        </span>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <i class="fas fa-envelope me-2 text-muted"></i>{{ user_obj.email|default:"-" }}
+                    </div>
+                    <div class="mb-2">
+                        <i class="fas fa-building me-2 text-muted"></i>{{ user_obj.department|default:"-" }}
+                    </div>
+                    <div class="mb-3">
+                        <i class="fas fa-phone me-2 text-muted"></i>{{ user_obj.phone|default:"-" }}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between border-top pt-3">
+                        <div>
+                            <small class="text-muted">Status</small>
+                            <div>
+                                {% if user_obj.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted">Transactions</small>
+                            <div class="fw-bold">{{ user_obj.income_count|add:user_obj.expense_count }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons mt-3 justify-content-center">
+                        <a href="{% url 'core:user_detail' user_obj.pk %}" class="btn btn-sm btn-light" title="View">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{% url 'core:user_edit' user_obj.pk %}" class="btn btn-sm btn-light" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'core:user_reset_password' user_obj.pk %}" class="btn btn-sm btn-warning" title="Reset Password">
+                            <i class="fas fa-key"></i>
+                        </a>
+                        <form method="post" action="{% url 'core:user_toggle_status' user_obj.pk %}" style="display:inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm {% if user_obj.is_active %}btn-secondary{% else %}btn-success{% endif %}" 
+                                    title="{% if user_obj.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                <i class="fas fa-power-off"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="empty-state">
+                <div class="empty-state-icon"><i class="fas fa-users"></i></div>
+                <h5 class="empty-state-title">No users found</h5>
+                <a href="{% url 'core:user_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Add User
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if users.has_other_pages %}
+    <div class="mt-4 d-flex justify-content-center">
+        <nav>
+            <ul class="pagination">
+                {% if users.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ users.previous_page_number }}&search={{ search }}&role={{ role_filter }}&status={{ status_filter }}">Previous</a>
+                </li>
+                {% endif %}
+                <li class="page-item disabled">
+                    <span class="page-link">Page {{ users.number }} of {{ users.paginator.num_pages }}</span>
+                </li>
+                {% if users.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ users.next_page_number }}&search={{ search }}&role={{ role_filter }}&status={{ status_filter }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

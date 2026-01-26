@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} - IT FIN Track{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-sync-alt me-2 text-accent"></i>{{ title }}
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Bill Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" required
+                               value="{{ bill.name|default:'' }}" placeholder="e.g., Internet, Hosting">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Vendor/Provider</label>
+                        <select name="vendor" class="form-select">
+                            <option value="">-- Select Vendor --</option>
+                            {% for v in vendors %}
+                            <option value="{{ v.pk }}" {% if bill.vendor_id == v.pk %}selected{% endif %}>{{ v.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row g-3 mt-2">
+                    <div class="col-md-4">
+                        <label class="form-label">Category <span class="text-danger">*</span></label>
+                        <select name="category" class="form-select" required>
+                            <option value="">-- Select Category --</option>
+                            {% for c in categories %}
+                            <option value="{{ c.pk }}" {% if bill.category_id == c.pk %}selected{% endif %}>{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Base Amount <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">Rs.</span>
+                            <input type="number" name="base_amount" class="form-control" step="0.01" min="0" required
+                                   value="{{ bill.base_amount|default:'0' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Frequency <span class="text-danger">*</span></label>
+                        <select name="frequency" class="form-select" required>
+                            {% for val, label in frequencies %}
+                            <option value="{{ val }}" {% if bill.frequency == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="row g-3 mt-2">
+                    <div class="col-md-4">
+                        <label class="form-label">Billing Day <span class="text-danger">*</span></label>
+                        <select name="billing_day" class="form-select" required>
+                            {% for d in "1234567890123456789012345678"|make_list %}
+                            {% with day=forloop.counter %}
+                            <option value="{{ day }}" {% if bill.billing_day == day %}selected{% endif %}>{{ day }}</option>
+                            {% endwith %}
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Day of month when bill is due</small>
+                    </div>
+                    {% if not bill %}
+                    <div class="col-md-4">
+                        <label class="form-label">Start Date <span class="text-danger">*</span></label>
+                        <input type="date" name="start_date" class="form-control" required value="{% now 'Y-m-d' %}">
+                    </div>
+                    {% endif %}
+                    {% if bill %}
+                    <div class="col-md-4">
+                        <label class="form-label">Status</label>
+                        <div class="form-check form-switch mt-2">
+                            <input type="checkbox" name="is_active" class="form-check-input" id="isActive"
+                                   {% if bill.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="isActive">Active</label>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="row g-3 mt-2">
+                    <div class="col-12">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="2" placeholder="Additional details...">{{ bill.description|default:'' }}</textarea>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'core:recurring_bill_list' %}" class="btn btn-light">
+                        <i class="fas fa-arrow-left me-1"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>{{ action }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

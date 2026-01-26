@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% block title %}{{ bill.name }} - IT FIN Track{% endblock %}
+{% block page_title %}{{ bill.name }}{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Bill Info Card -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-sync-alt me-2 text-accent"></i>Bill Details
+                    </h5>
+                    {% if request.user.can_edit %}
+                    <div>
+                        <a href="{% url 'core:recurring_bill_edit' bill.pk %}" class="btn btn-sm btn-light">
+                            <i class="fas fa-edit me-1"></i>Edit
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr><td class="text-muted">Category:</td><td><span class="badge" style="background:{{ bill.category.color }}">{{ bill.category.name }}</span></td></tr>
+                                <tr><td class="text-muted">Vendor:</td><td>{{ bill.vendor.name|default:'-' }}</td></tr>
+                                <tr><td class="text-muted">Base Amount:</td><td class="fw-bold">Rs. {{ bill.base_amount|floatformat:0 }}</td></tr>
+                                <tr><td class="text-muted">Frequency:</td><td>{{ bill.get_frequency_display }}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr><td class="text-muted">Billing Day:</td><td>{{ bill.billing_day }}</td></tr>
+                                <tr><td class="text-muted">Start Date:</td><td>{{ bill.start_date|date:"d M Y" }}</td></tr>
+                                <tr><td class="text-muted">Next Due:</td><td>{{ bill.get_next_due_date|date:"d M Y" }}</td></tr>
+                                <tr><td class="text-muted">Status:</td><td>{% if bill.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                    {% if bill.description %}
+                    <p class="text-muted mb-0">{{ bill.description }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2 text-accent"></i>Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="display-6 fw-bold amount-negative">Rs. {{ total_paid|floatformat:0 }}</div>
+                        <small class="text-muted">Total Paid ({{ payments_count }} payments)</small>
+                    </div>
+                    {% if bill.pending_payment %}
+                    <div class="alert {% if bill.is_overdue %}alert-danger{% else %}alert-warning{% endif %} mb-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{% if bill.is_overdue %}Overdue{% else %}Pending{% endif %}</strong><br>
+                                <small>Due: {{ bill.pending_payment.due_date|date:"d M Y" }}</small>
+                            </div>
+                            <div class="fw-bold">Rs. {{ bill.pending_payment.amount|floatformat:0 }}</div>
+                        </div>
+                        {% if request.user.can_edit %}
+                        <a href="{% url 'core:recurring_bill_pay' bill.pk %}" class="btn btn-success w-100 mt-2">
+                            <i class="fas fa-check me-1"></i>Mark as Paid
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-success text-center mb-0">
+                        <i class="fas fa-check-circle me-2"></i>All payments up to date!
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment History -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0"><i class="fas fa-history me-2 text-accent"></i>Payment History</h5>
+            {% if request.user.can_edit and not bill.pending_payment %}
+            <a href="{% url 'core:recurring_bill_generate' bill.pk %}" class="btn btn-sm btn-primary">
+                <i class="fas fa-plus me-1"></i>Generate Next Period
+            </a>
+            {% endif %}
+        </div>
+        <div class="card-body p-0">
+            {% if payments %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Period</th>
+                            <th>Due Date</th>
+                            <th>Paid Date</th>
+                            <th>Status</th>
+                            <th class="text-end">Amount</th>
+                            <th>Expense</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td>{{ payment.period_start|date:"d M" }} - {{ payment.period_end|date:"d M Y" }}</td>
+                            <td>{{ payment.due_date|date:"d M Y" }}</td>
+                            <td>{{ payment.paid_date|date:"d M Y"|default:'-' }}</td>
+                            <td>
+                                {% if payment.status == 'paid' %}
+                                <span class="badge bg-success">Paid</span>
+                                {% elif payment.is_overdue %}
+                                <span class="badge bg-danger">Overdue</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end fw-bold">Rs. {{ payment.amount|floatformat:0 }}</td>
+                            <td>
+                                {% if payment.expense %}
+                                <a href="{% url 'core:expense_detail' payment.expense.pk %}" class="btn btn-sm btn-light">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                                {% else %}-{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-history fa-3x mb-3"></i>
+                <p>No payment history yet</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="d-flex justify-content-between mt-4">
+        <a href="{% url 'core:recurring_bill_list' %}" class="btn btn-light">
+            <i class="fas fa-arrow-left me-1"></i>Back to List
+        </a>
+        {% if request.user.can_delete %}
+        <a href="{% url 'core:recurring_bill_delete' bill.pk %}" class="btn btn-danger">
+            <i class="fas fa-trash me-1"></i>Delete
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

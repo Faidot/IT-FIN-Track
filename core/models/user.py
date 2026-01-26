@@ -12,12 +12,13 @@ class User(AbstractUser):
     class Role(models.TextChoices):
         ADMIN = 'admin', 'Admin (IT/Finance Head)'
         EXECUTIVE = 'executive', 'IT Executive'
-        MANAGER = 'manager', 'Manager/Accounts (Read-only)'
+        MANAGER = 'manager', 'Manager/Accounts'
+        USER = 'user', 'Simple User (View Only)'
     
     role = models.CharField(
         max_length=20,
         choices=Role.choices,
-        default=Role.EXECUTIVE,
+        default=Role.USER,
         help_text='User role determines access permissions'
     )
     department = models.CharField(
@@ -59,6 +60,10 @@ class User(AbstractUser):
         return self.role == self.Role.MANAGER
     
     @property
+    def is_simple_user(self):
+        return self.role == self.Role.USER
+    
+    @property
     def can_edit(self):
         """Check if user can create/edit transactions."""
         return self.role in [self.Role.ADMIN, self.Role.EXECUTIVE]
@@ -72,3 +77,8 @@ class User(AbstractUser):
     def can_delete(self):
         """Check if user can delete records."""
         return self.role == self.Role.ADMIN
+    
+    @property
+    def can_view_reports(self):
+        """Check if user can view reports."""
+        return self.role in [self.Role.ADMIN, self.Role.MANAGER, self.Role.EXECUTIVE]

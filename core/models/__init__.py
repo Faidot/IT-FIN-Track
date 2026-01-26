@@ -9,6 +9,7 @@ from .income_source import IncomeSource
 from .income import Income
 from .expense import Expense, ExpenseBill
 from .audit import AuditLog
+from .recurring_bill import RecurringBill, BillPayment
 
 __all__ = [
     'User',
@@ -19,4 +20,7 @@ __all__ = [
     'Expense',
     'ExpenseBill',
     'AuditLog',
+    'RecurringBill',
+    'BillPayment',
 ]
+
