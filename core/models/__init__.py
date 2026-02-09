@@ -3,6 +3,7 @@ Core models for IT FIN Track.
 """
 
 from .user import User
+from .role import Role
 from .category import Category
 from .vendor import Vendor
 from .income_source import IncomeSource
@@ -13,6 +14,7 @@ from .recurring_bill import RecurringBill, BillPayment
 
 __all__ = [
     'User',
+    'Role',
     'Category',
     'Vendor',
     'IncomeSource',
@@ -23,4 +25,5 @@ __all__ = [
     'RecurringBill',
     'BillPayment',
 ]
+
 

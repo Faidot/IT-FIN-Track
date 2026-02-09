@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %}Role Management - IT FIN Track{% endblock %}
+{% block page_title %}Role Management{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h5 class="mb-0">Roles</h5>
+            <small class="text-muted">{{ roles|length }} roles defined</small>
+        </div>
+        <a href="{% url 'core:role_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Add Role
+        </a>
+    </div>
+    
+    <!-- Roles Grid -->
+    <div class="row g-4">
+        {% for role in roles %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-user-tag me-2 text-accent"></i>{{ role.name }}
+                    </h6>
+                    <div>
+                        {% if role.is_default %}
+                        <span class="badge bg-primary">Default</span>
+                        {% endif %}
+                        {% if role.is_active %}
+                        <span class="badge bg-success">Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if role.description %}
+                    <p class="text-muted small mb-3">{{ role.description }}</p>
+                    {% endif %}
+                    
+                    <!-- Permission Summary -->
+                    <div class="mb-3">
+                        <strong class="small text-muted">Core Permissions:</strong>
+                        <div class="mt-1">
+                            {% if role.can_view %}<span class="badge bg-info me-1 mb-1">View</span>{% endif %}
+                            {% if role.can_create %}<span class="badge bg-success me-1 mb-1">Create</span>{% endif %}
+                            {% if role.can_edit %}<span class="badge bg-warning me-1 mb-1">Edit</span>{% endif %}
+                            {% if role.can_delete %}<span class="badge bg-danger me-1 mb-1">Delete</span>{% endif %}
+                            {% if role.can_approve %}<span class="badge bg-primary me-1 mb-1">Approve</span>{% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong class="small text-muted">Reports Access:</strong>
+                        <div class="mt-1">
+                            {% if role.can_view_reports %}<span class="badge bg-secondary me-1 mb-1">Dashboard</span>{% endif %}
+                            {% if role.can_view_expense_report %}<span class="badge bg-secondary me-1 mb-1">Expense</span>{% endif %}
+                            {% if role.can_view_income_report %}<span class="badge bg-secondary me-1 mb-1">Income</span>{% endif %}
+                            {% if role.can_view_audit_trail %}<span class="badge bg-secondary me-1 mb-1">Audit</span>{% endif %}
+                            {% if role.can_export_data %}<span class="badge bg-secondary me-1 mb-1">Export</span>{% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="fas fa-users me-1"></i>{{ role.users.count }} users
+                        </small>
+                        <small class="text-muted">
+                            {{ role.permission_count }} permissions
+                        </small>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <div class="action-buttons">
+                        <a href="{% url 'core:role_detail' role.pk %}" class="btn btn-sm btn-light" title="View">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{% url 'core:role_edit' role.pk %}" class="btn btn-sm btn-light" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'core:role_delete' role.pk %}" class="btn btn-sm btn-danger" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-user-tag fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No roles defined yet.</p>
+                    <a href="{% url 'core:role_create' %}" class="btn btn-primary">Create First Role</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

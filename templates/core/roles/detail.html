@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}Role: {{ role.name }} - IT FIN Track{% endblock %}
+{% block page_title %}Role: {{ role.name }}{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="row">
+        <!-- Role Info -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-user-tag me-2"></i>{{ role.name }}</h5>
+                    <div>
+                        {% if role.is_default %}<span class="badge bg-primary me-1">Default</span>{% endif %}
+                        {% if role.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if role.description %}
+                    <p class="text-muted">{{ role.description }}</p>
+                    {% endif %}
+                    
+                    <!-- Core Permissions -->
+                    <h6 class="mb-3"><i class="fas fa-shield-alt me-2 text-primary"></i>Core Permissions</h6>
+                    <div class="mb-4">
+                        {% if role.can_view %}<span class="badge bg-info me-1 mb-1"><i class="fas fa-eye me-1"></i>View</span>{% endif %}
+                        {% if role.can_create %}<span class="badge bg-success me-1 mb-1"><i class="fas fa-plus me-1"></i>Create</span>{% endif %}
+                        {% if role.can_edit %}<span class="badge bg-warning me-1 mb-1"><i class="fas fa-edit me-1"></i>Edit</span>{% endif %}
+                        {% if role.can_delete %}<span class="badge bg-danger me-1 mb-1"><i class="fas fa-trash me-1"></i>Delete</span>{% endif %}
+                        {% if role.can_approve %}<span class="badge bg-primary me-1 mb-1"><i class="fas fa-check-circle me-1"></i>Approve</span>{% endif %}
+                    </div>
+                    
+                    <!-- Module Access -->
+                    <h6 class="mb-3"><i class="fas fa-cubes me-2 text-accent"></i>Module Access</h6>
+                    <div class="mb-4">
+                        {% if role.can_manage_income %}<span class="badge bg-secondary me-1 mb-1">Income</span>{% endif %}
+                        {% if role.can_manage_expenses %}<span class="badge bg-secondary me-1 mb-1">Expenses</span>{% endif %}
+                        {% if role.can_manage_vendors %}<span class="badge bg-secondary me-1 mb-1">Vendors</span>{% endif %}
+                        {% if role.can_manage_categories %}<span class="badge bg-secondary me-1 mb-1">Categories</span>{% endif %}
+                        {% if role.can_manage_recurring_bills %}<span class="badge bg-secondary me-1 mb-1">Recurring Bills</span>{% endif %}
+                        {% if role.can_manage_income_sources %}<span class="badge bg-secondary me-1 mb-1">Income Sources</span>{% endif %}
+                    </div>
+                    
+                    <!-- Report Access -->
+                    <h6 class="mb-3"><i class="fas fa-chart-bar me-2 text-success"></i>Report Access</h6>
+                    <div class="mb-4">
+                        {% if role.can_view_reports %}<span class="badge bg-secondary me-1 mb-1">Dashboard</span>{% endif %}
+                        {% if role.can_view_expense_report %}<span class="badge bg-secondary me-1 mb-1">Expense Report</span>{% endif %}
+                        {% if role.can_view_income_report %}<span class="badge bg-secondary me-1 mb-1">Income Report</span>{% endif %}
+                        {% if role.can_view_account_balance %}<span class="badge bg-secondary me-1 mb-1">Account Balance</span>{% endif %}
+                        {% if role.can_view_reimbursement_report %}<span class="badge bg-secondary me-1 mb-1">Reimbursement</span>{% endif %}
+                        {% if role.can_view_audit_trail %}<span class="badge bg-secondary me-1 mb-1">Audit Trail</span>{% endif %}
+                        {% if role.can_export_data %}<span class="badge bg-secondary me-1 mb-1">Export</span>{% endif %}
+                    </div>
+                    
+                    <!-- Admin Permissions -->
+                    {% if role.can_manage_users or role.can_manage_roles %}
+                    <h6 class="mb-3"><i class="fas fa-user-shield me-2 text-danger"></i>Admin Permissions</h6>
+                    <div class="mb-4">
+                        {% if role.can_manage_users %}<span class="badge bg-danger me-1 mb-1">Manage Users</span>{% endif %}
+                        {% if role.can_manage_roles %}<span class="badge bg-danger me-1 mb-1">Manage Roles</span>{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'core:role_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Back
+                        </a>
+                        <div>
+                            <a href="{% url 'core:role_edit' role.pk %}" class="btn btn-warning">
+                                <i class="fas fa-edit me-1"></i>Edit
+                            </a>
+                            <a href="{% url 'core:role_delete' role.pk %}" class="btn btn-danger">
+                                <i class="fas fa-trash me-1"></i>Delete
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Assigned Users -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-users me-2"></i>Assigned Users ({{ users|length }})</h6>
+                </div>
+                <div class="card-body p-0">
+                    {% if users %}
+                    <ul class="list-group list-group-flush">
+                        {% for user in users %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ user.get_full_name|default:user.username }}</strong>
+                                <br><small class="text-muted">{{ user.email }}</small>
+                            </div>
+                            <a href="{% url 'core:user_edit' user.pk %}" class="btn btn-sm btn-light">
+                                <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-user-slash fa-2x mb-2"></i>
+                        <p class="mb-0">No users assigned to this role</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

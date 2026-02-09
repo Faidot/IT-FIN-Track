@@ -150,14 +150,25 @@
             </a>
         </div>
         <div class="col-lg-3 col-md-6">
-            <a href="{% url 'core:reimbursement_report' %}" class="card h-100 text-decoration-none hover-lift">
+            <a href="{% url 'core:account_balance_report' %}" class="card h-100 text-decoration-none hover-lift">
                 <div class="card-body text-center">
-                    <div class="stat-icon mx-auto mb-3" style="background:#FFC107"><i class="fas fa-hand-holding-usd text-white"></i></div>
-                    <h6>Reimbursement Report</h6>
-                    <p class="text-muted small mb-0">Track pending and completed reimbursements</p>
+                    <div class="stat-icon mx-auto mb-3" style="background:#28A745"><i class="fas fa-wallet text-white"></i></div>
+                    <h6>Account Balance Report</h6>
+                    <p class="text-muted small mb-0">Track remaining balance by income source</p>
                 </div>
             </a>
         </div>
+        <div class="col-lg-3 col-md-6">
+            <a href="{% url 'core:reimbursement_report' %}" class="card h-100 text-decoration-none hover-lift">
+                <div class="card-body text-center">
+                    <div class="stat-icon mx-auto mb-3" style="background:#FFC107"><i class="fas fa-sync-alt text-white"></i></div>
+                    <h6>Recurring Bill Report</h6>
+                    <p class="text-muted small mb-0">Track recurring bill payments by month</p>
+                </div>
+            </a>
+        </div>
+    </div>
+    <div class="row g-4 mt-2">
         <div class="col-lg-3 col-md-6">
             <a href="{% url 'core:audit_trail' %}" class="card h-100 text-decoration-none hover-lift">
                 <div class="card-body text-center">

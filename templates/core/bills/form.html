@@ -77,16 +77,15 @@
                         <input type="date" name="start_date" class="form-control" required value="{% now 'Y-m-d' %}">
                     </div>
                     {% endif %}
-                    {% if bill %}
                     <div class="col-md-4">
                         <label class="form-label">Status</label>
                         <div class="form-check form-switch mt-2">
                             <input type="checkbox" name="is_active" class="form-check-input" id="isActive"
-                                   {% if bill.is_active %}checked{% endif %}>
+                                   {% if bill.is_active or not bill %}checked{% endif %}>
                             <label class="form-check-label" for="isActive">Active</label>
                         </div>
+                        <small class="text-muted">Inactive bills won't generate payments</small>
                     </div>
-                    {% endif %}
                 </div>
                 
                 <div class="row g-3 mt-2">

@@ -5,7 +5,7 @@
 {% block content %}
 <div class="fade-in">
     <div class="row justify-content-center">
-        <div class="col-lg-6">
+        <div class="col-lg-8">
             <div class="card">
                 <div class="card-header">
                     <h5 class="card-title mb-0">
@@ -21,6 +21,9 @@
                             </div>
                             <div class="text-end">
                                 <span class="badge bg-{{ bill.category.color|default:'secondary' }}">{{ bill.category.name }}</span>
+                                {% if bill.vendor %}
+                                <br><small class="text-muted">{{ bill.vendor.name }}</small>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -28,29 +31,65 @@
                     <form method="post">
                         {% csrf_token %}
                         
-                        <div class="mb-3">
-                            <label class="form-label">Amount <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text">Rs.</span>
-                                <input type="number" name="amount" class="form-control form-control-lg" step="0.01" 
-                                       min="0" required value="{{ payment.amount }}">
+                        <div class="row g-3 mb-4">
+                            <!-- Payment Type -->
+                            <div class="col-md-6">
+                                <label class="form-label">Payment Type <span class="text-danger">*</span></label>
+                                <select name="payment_type" id="payment_type" class="form-select form-select-lg" required>
+                                    {% for value, label in payment_types %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Who will handle this payment?</small>
                             </div>
-                            <small class="text-muted">Base amount: Rs. {{ bill.base_amount|floatformat:0 }}. Adjust if different this period.</small>
+                            
+                            <!-- Income Source -->
+                            <div class="col-md-6" id="income_source_container">
+                                <label class="form-label">Income Source (Fund)</label>
+                                <select name="linked_income" class="form-select form-select-lg">
+                                    <option value="">-- Select Income Source --</option>
+                                    {% for income in incomes %}
+                                    <option value="{{ income.pk }}">{{ income.source.name }} - Rs. {{ income.remaining_amount|floatformat:0 }} available ({{ income.date|date:"d M Y" }})</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Which fund will this expense be charged to?</small>
+                            </div>
                         </div>
                         
-                        <div class="mb-3">
-                            <label class="form-label">Paid Date <span class="text-danger">*</span></label>
-                            <input type="date" name="paid_date" class="form-control" required value="{% now 'Y-m-d' %}">
+                        <div class="row g-3 mb-4">
+                            <!-- Amount -->
+                            <div class="col-md-6">
+                                <label class="form-label">Amount <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Rs.</span>
+                                    <input type="number" name="amount" class="form-control form-control-lg" step="0.01" 
+                                           min="0" required value="{{ payment.amount }}">
+                                </div>
+                                <small class="text-muted">Base amount: Rs. {{ bill.base_amount|floatformat:0 }}. Adjust if different this period.</small>
+                            </div>
+                            
+                            <!-- Paid Date -->
+                            <div class="col-md-6">
+                                <label class="form-label">Paid Date <span class="text-danger">*</span></label>
+                                <input type="date" name="paid_date" class="form-control form-control-lg" required value="{% now 'Y-m-d' %}">
+                            </div>
                         </div>
                         
-                        <div class="mb-3">
+                        <div class="mb-4">
                             <label class="form-label">Notes</label>
                             <textarea name="notes" class="form-control" rows="2" placeholder="Optional notes..."></textarea>
                         </div>
                         
-                        <div class="alert alert-warning">
+                        <!-- Info Alert - Changes based on payment type -->
+                        <div class="alert alert-warning" id="it_payment_info">
                             <i class="fas fa-info-circle me-2"></i>
-                            This will create an <strong>expense record</strong> pending approval.
+                            <strong>IT Payment:</strong> This will create an <strong>expense record</strong> pending approval, deducted from IT budget.
+                        </div>
+                        
+                        <div class="alert alert-success d-none" id="accounts_pay_info">
+                            <i class="fas fa-university me-2"></i>
+                            <strong>Accounts Direct Pay:</strong> Payment goes directly from Accounts to Vendor. 
+                            <strong>No IT expense</strong> will be created (not charged to IT budget).
                         </div>
                         
                         <hr class="my-4">
@@ -69,4 +108,27 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const paymentType = document.getElementById('payment_type');
+    const incomeContainer = document.getElementById('income_source_container');
+    const itPaymentInfo = document.getElementById('it_payment_info');
+    const accountsPayInfo = document.getElementById('accounts_pay_info');
+    
+    function toggleFields() {
+        const isAccountsPay = paymentType.value === 'accounts_pay';
+        
+        // Toggle income source visibility (hide for accounts pay)
+        incomeContainer.style.display = isAccountsPay ? 'none' : 'block';
+        
+        // Toggle info alerts
+        itPaymentInfo.classList.toggle('d-none', isAccountsPay);
+        accountsPayInfo.classList.toggle('d-none', !isAccountsPay);
+    }
+    
+    paymentType.addEventListener('change', toggleFields);
+    toggleFields(); // Initial state
+});
+</script>
 {% endblock %}

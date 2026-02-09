@@ -8,8 +8,9 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from calendar import monthrange
 
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.http import HttpResponse
 from django.db.models import Sum, Count, Avg, Max, Min
 from django.db.models.functions import TruncMonth, TruncWeek, TruncDate
@@ -383,73 +384,109 @@ def income_expense_statement(request):
 
 @login_required
 def reimbursement_report(request):
-    """Enhanced pending reimbursement report."""
-    # Get pending reimbursements with source details
-    pending = Income.objects.filter(
+    """Recurring bill payment report by month."""
+    from core.models import RecurringBill, BillPayment
+    from datetime import date
+    
+    today = date.today()
+    current_year = int(request.GET.get('year', today.year))
+    
+    # Get all active recurring bills
+    bills = RecurringBill.objects.filter(
         is_soft_deleted=False,
-        is_reimbursable=True,
-        reimbursed=False
-    ).select_related('source', 'created_by').order_by('-date')
+        is_active=True
+    ).select_related('category', 'vendor').prefetch_related('payments')
     
-    # Get completed reimbursements
-    completed = Income.objects.filter(
-        is_soft_deleted=False,
-        is_reimbursable=True,
-        reimbursed=True
-    ).select_related('source', 'created_by').order_by('-reimbursed_date')[:30]
+    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     
-    # Summary
-    total_pending = pending.aggregate(total=Sum('amount'))['total'] or Decimal('0')
-    pending_count = pending.count()
-    total_completed = completed.aggregate(total=Sum('amount'))['total'] or Decimal('0')
-    completed_count = completed.count()
+    # Build month-wise payment matrix for each bill (track by period_start = billing month)
+    bill_data = []
+    for bill in bills:
+        months = []
+        for m in range(1, 13):
+            # Check payment by billing period month (period_start)
+            payment = bill.payments.filter(
+                period_start__year=current_year,
+                period_start__month=m,
+                status='paid'
+            ).first()
+            
+            pending_payment = bill.payments.filter(
+                period_start__year=current_year,
+                period_start__month=m,
+                status='pending'
+            ).first()
+            
+            months.append({
+                'month': m,
+                'month_name': month_names[m - 1],
+                'paid': payment is not None,
+                'pending': pending_payment is not None,
+                'amount': payment.amount if payment else None,
+                'payment_type': payment.payment_type if payment else None,
+                'is_current': m == today.month and current_year == today.year,
+                'is_future': (m > today.month and current_year == today.year) or current_year > today.year,
+                'is_overdue': pending_payment.is_overdue if pending_payment else False
+            })
+        
+        # Calculate totals for this bill
+        total_paid = bill.payments.filter(
+            period_end__year=current_year,
+            status='paid'
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        
+        paid_count = bill.payments.filter(
+            period_end__year=current_year,
+            status='paid'
+        ).count()
+        
+        bill_data.append({
+            'bill': bill,
+            'months': months,
+            'total_paid': total_paid,
+            'paid_count': paid_count,
+        })
     
-    # Pending by source
-    pending_by_source = pending.values(
-        'source__name', 'source__color'
-    ).annotate(
-        total=Sum('amount'),
-        count=Count('id')
-    ).order_by('-total')
+    # Overall summary
+    total_paid_year = BillPayment.objects.filter(
+        bill__is_soft_deleted=False,
+        period_end__year=current_year,
+        status='paid'
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
     
-    # Pending by user
-    pending_by_user = pending.values(
-        'created_by__first_name', 'created_by__last_name', 'created_by__username'
-    ).annotate(
-        total=Sum('amount'),
-        count=Count('id')
-    ).order_by('-total')
+    total_pending = BillPayment.objects.filter(
+        bill__is_soft_deleted=False,
+        status='pending'
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
     
-    # Age analysis (how old are pending items)
-    today = timezone.now().date()
-    age_buckets = {
-        '0-7 days': Decimal('0'),
-        '8-14 days': Decimal('0'),
-        '15-30 days': Decimal('0'),
-        '30+ days': Decimal('0'),
-    }
+    # IT Payment vs Accounts Pay breakdown
+    it_payment_total = BillPayment.objects.filter(
+        bill__is_soft_deleted=False,
+        period_end__year=current_year,
+        status='paid',
+        payment_type='it_payment'
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
     
-    for item in pending:
-        age = (today - item.date).days
-        if age <= 7:
-            age_buckets['0-7 days'] += item.amount
-        elif age <= 14:
-            age_buckets['8-14 days'] += item.amount
-        elif age <= 30:
-            age_buckets['15-30 days'] += item.amount
-        else:
-            age_buckets['30+ days'] += item.amount
+    accounts_pay_total = BillPayment.objects.filter(
+        bill__is_soft_deleted=False,
+        period_end__year=current_year,
+        status='paid',
+        payment_type='accounts_pay'
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    
+    # Available years for navigation
+    years = list(range(today.year - 2, today.year + 2))
     
     context = {
-        'pending': pending,
-        'completed': completed,
+        'bill_data': bill_data,
+        'month_names': month_names,
+        'current_year': current_year,
+        'current_month': today.month,
+        'years': years,
+        'total_paid_year': total_paid_year,
         'total_pending': total_pending,
-        'pending_count': pending_count,
-        'total_completed': total_completed,
-        'completed_count': completed_count,
-        'pending_by_source': pending_by_source,
-        'pending_by_user': pending_by_user,
-        'age_buckets': age_buckets,
+        'it_payment_total': it_payment_total,
+        'accounts_pay_total': accounts_pay_total,
     }
     
     return render(request, 'core/reports/reimbursement.html', context)
@@ -457,7 +494,12 @@ def reimbursement_report(request):
 
 @login_required
 def audit_trail(request):
-    """Audit trail report."""
+    """Audit trail report - Admin only."""
+    # Admin only
+    if not request.user.is_admin:
+        messages.error(request, 'Only administrators can access the audit trail.')
+        return redirect('core:dashboard')
+    
     logs = AuditLog.objects.select_related('user').all()
     
     # Filters
@@ -593,3 +635,97 @@ def export_excel(request, report_type):
     
     wb.save(response)
     return response
+
+
+@login_required
+def account_balance_report(request):
+    """Account Balance Report - Shows remaining balance by income source."""
+    from django.db.models import F, Value, DecimalField
+    from django.db.models.functions import Coalesce
+    
+    # Date filters
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    source_filter = request.GET.get('source', '')
+    
+    # Base income queryset
+    incomes = Income.objects.filter(is_soft_deleted=False).select_related('source')
+    
+    if date_from:
+        incomes = incomes.filter(date__gte=date_from)
+    if date_to:
+        incomes = incomes.filter(date__lte=date_to)
+    if source_filter:
+        incomes = incomes.filter(source_id=source_filter)
+    
+    # Calculate spent for each income using annotation
+    income_balances = []
+    total_received = Decimal('0')
+    total_spent = Decimal('0')
+    total_remaining = Decimal('0')
+    
+    for income in incomes.order_by('-date'):
+        spent = income.spent_amount
+        remaining = income.remaining_amount
+        total_received += income.amount
+        total_spent += spent
+        total_remaining += remaining
+        
+        income_balances.append({
+            'income': income,
+            'spent': spent,
+            'remaining': remaining,
+            'usage_percent': (spent / income.amount * 100) if income.amount > 0 else 0,
+        })
+    
+    # Summary by Source
+    source_summary = {}
+    for item in income_balances:
+        source_name = item['income'].source.name
+        source_id = item['income'].source.id
+        source_color = item['income'].source.color
+        source_icon = item['income'].source.icon
+        
+        if source_name not in source_summary:
+            source_summary[source_name] = {
+                'id': source_id,
+                'name': source_name,
+                'color': source_color,
+                'icon': source_icon,
+                'received': Decimal('0'),
+                'spent': Decimal('0'),
+                'remaining': Decimal('0'),
+                'count': 0,
+            }
+        
+        source_summary[source_name]['received'] += item['income'].amount
+        source_summary[source_name]['spent'] += item['spent']
+        source_summary[source_name]['remaining'] += item['remaining']
+        source_summary[source_name]['count'] += 1
+    
+    # Convert to list and add percentages
+    source_data = []
+    for data in source_summary.values():
+        data['usage_percent'] = (data['spent'] / data['received'] * 100) if data['received'] > 0 else 0
+        source_data.append(data)
+    
+    # Sort by remaining descending
+    source_data.sort(key=lambda x: x['remaining'], reverse=True)
+    
+    # Get sources for filter dropdown
+    sources = IncomeSource.objects.filter(is_soft_deleted=False, is_active=True)
+    
+    context = {
+        'income_balances': income_balances,
+        'source_data': source_data,
+        'sources': sources,
+        'total_received': total_received,
+        'total_spent': total_spent,
+        'total_remaining': total_remaining,
+        'date_from': date_from,
+        'date_to': date_to,
+        'source_filter': source_filter,
+    }
+    
+    return render(request, 'core/reports/account_balance.html', context)
+

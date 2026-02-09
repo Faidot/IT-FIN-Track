@@ -3,7 +3,7 @@ User form for IT FIN Track.
 """
 
 from django import forms
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from django.contrib.auth.forms import UserCreationForm
 from core.models import User
 
 

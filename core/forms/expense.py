@@ -3,7 +3,9 @@ Forms for Expense management.
 """
 
 from django import forms
-from core.models import Expense, ExpenseBill
+from django.db.models import Sum, F, Value, DecimalField, Q
+from django.db.models.functions import Coalesce
+from core.models import Expense, ExpenseBill, Income
 
 
 class ExpenseForm(forms.ModelForm):
@@ -34,6 +36,29 @@ class ExpenseForm(forms.ModelForm):
         self.fields['vendor'].empty_label = "-- Select Vendor (Optional) --"
         self.fields['linked_income'].empty_label = "-- Link to Income Entry (Optional) --"
         self.fields['linked_income'].label = "Linked Income"
+        
+        # Filter linked_income to only show incomes with remaining balance > 0
+        # Calculate remaining amount: amount - sum of linked expenses
+        incomes_with_balance = Income.objects.filter(
+            is_soft_deleted=False
+        ).annotate(
+            spent=Coalesce(
+                Sum('linked_expenses__amount', filter=Q(linked_expenses__is_soft_deleted=False)),
+                Value(0),
+                output_field=DecimalField()
+            )
+        ).annotate(
+            remaining=F('amount') - F('spent')
+        ).filter(
+            remaining__gt=0
+        ).order_by('-date')
+        
+        # If editing, include the currently linked income even if fully used
+        instance = kwargs.get('instance')
+        if instance and instance.linked_income:
+            incomes_with_balance = incomes_with_balance | Income.objects.filter(pk=instance.linked_income.pk)
+        
+        self.fields['linked_income'].queryset = incomes_with_balance
     
     def clean_amount(self):
         amount = self.cleaned_data.get('amount')

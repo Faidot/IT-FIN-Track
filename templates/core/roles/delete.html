@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Delete Role - IT FIN Track{% endblock %}
+{% block page_title %}Delete Role{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="card">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion</h5>
+        </div>
+        <div class="card-body">
+            <p>Are you sure you want to delete the role <strong>"{{ role.name }}"</strong>?</p>
+            
+            {% if user_count > 0 %}
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <strong>Cannot delete!</strong> This role has <strong>{{ user_count }}</strong> user(s) assigned to it.
+                Please reassign those users to a different role before deleting.
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="fas fa-info-circle me-2"></i>
+                This action cannot be undone.
+            </div>
+            {% endif %}
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'core:role_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Cancel
+                    </a>
+                    {% if user_count == 0 %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>Delete Role
+                    </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

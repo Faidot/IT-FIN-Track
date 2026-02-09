@@ -6,7 +6,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.http import JsonResponse
 from django.utils import timezone
 
@@ -53,6 +53,10 @@ def expense_list(request):
     order = request.GET.get('order', '-date')
     expenses = expenses.order_by(order, '-created_at')
     
+    # Calculate total of filtered results (before pagination)
+    total_amount = expenses.aggregate(total=Sum('amount'))['total'] or 0
+    total_count = expenses.count()
+    
     # Pagination
     paginator = Paginator(expenses, 20)
     page = request.GET.get('page', 1)
@@ -69,6 +73,8 @@ def expense_list(request):
         'status_filter': status,
         'date_from': date_from,
         'date_to': date_to,
+        'total_amount': total_amount,
+        'total_count': total_count,
     }
     return render(request, 'core/expense/list.html', context)
 

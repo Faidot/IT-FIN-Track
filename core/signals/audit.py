@@ -1,29 +1,36 @@
 """
 Django signals for automatic audit logging.
+Captures all CRUD operations for auditable models.
 """
 
 from django.db.models.signals import post_save, pre_save, pre_delete
 from django.dispatch import receiver
 from django.forms.models import model_to_dict
+from django.contrib.auth.signals import user_logged_in, user_logged_out
 
-from core.models import Income, Expense, Vendor, Category, IncomeSource, AuditLog
+from core.models import Income, Expense, ExpenseBill, Vendor, Category, IncomeSource, AuditLog, RecurringBill, BillPayment
 from core.middleware.audit import get_current_request
 
 
 # Fields to exclude from audit logging
-EXCLUDED_FIELDS = ['created_at', 'updated_at', 'password']
+EXCLUDED_FIELDS = ['created_at', 'updated_at', 'password', 'last_login']
 
 
 def get_model_dict(instance, fields=None):
     """Convert model instance to dictionary for audit logging."""
-    data = model_to_dict(instance, fields=fields)
-    # Convert non-serializable types
-    for key, value in data.items():
-        if hasattr(value, 'isoformat'):
-            data[key] = value.isoformat()
-        elif hasattr(value, 'id'):
-            data[key] = str(value)
-    return data
+    try:
+        data = model_to_dict(instance, fields=fields)
+        # Convert non-serializable types
+        for key, value in list(data.items()):
+            if hasattr(value, 'isoformat'):
+                data[key] = value.isoformat()
+            elif hasattr(value, 'id'):
+                data[key] = str(value)
+            elif isinstance(value, bytes):
+                data[key] = '<binary data>'
+        return data
+    except Exception:
+        return {'id': instance.pk, 'str': str(instance)}
 
 
 def get_changes(old_data, new_data):
@@ -37,26 +44,22 @@ def get_changes(old_data, new_data):
         new_val = new_data.get(key)
         if old_val != new_val:
             changes.append(f"{key}: '{old_val}' → '{new_val}'")
-    return '; '.join(changes)
+    return '; '.join(changes) if changes else 'No field changes detected'
 
 
-class AuditableMixin:
-    """Mixin to track original values for audit."""
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._original_data = self._get_audit_data() if self.pk else {}
-    
-    def _get_audit_data(self):
-        return get_model_dict(self)
+# All models to audit
+AUDITABLE_MODELS = [Income, Expense, ExpenseBill, Vendor, Category, IncomeSource, RecurringBill, BillPayment]
 
 
 # Pre-save signal to capture old values
 @receiver(pre_save, sender=Income)
 @receiver(pre_save, sender=Expense)
+@receiver(pre_save, sender=ExpenseBill)
 @receiver(pre_save, sender=Vendor)
 @receiver(pre_save, sender=Category)
 @receiver(pre_save, sender=IncomeSource)
+@receiver(pre_save, sender=RecurringBill)
+@receiver(pre_save, sender=BillPayment)
 def capture_old_values(sender, instance, **kwargs):
     """Capture old values before save for audit trail."""
     if instance.pk:
@@ -72,9 +75,12 @@ def capture_old_values(sender, instance, **kwargs):
 # Post-save signal to create audit log
 @receiver(post_save, sender=Income)
 @receiver(post_save, sender=Expense)
+@receiver(post_save, sender=ExpenseBill)
 @receiver(post_save, sender=Vendor)
 @receiver(post_save, sender=Category)
 @receiver(post_save, sender=IncomeSource)
+@receiver(post_save, sender=RecurringBill)
+@receiver(post_save, sender=BillPayment)
 def create_audit_log(sender, instance, created, **kwargs):
     """Create audit log entry after save."""
     request = get_current_request()
@@ -92,18 +98,36 @@ def create_audit_log(sender, instance, created, **kwargs):
     else:
         # Check if this is a soft delete
         if hasattr(instance, 'is_soft_deleted') and old_data:
-            if not old_data.get('is_soft_deleted') and instance.is_soft_deleted:
+            if not old_data.get('is_soft_deleted') and getattr(instance, 'is_soft_deleted', False):
                 action = AuditLog.ActionType.SOFT_DELETE
                 changes_summary = f"Soft deleted {sender.__name__}: {str(instance)}"
-            elif old_data.get('is_soft_deleted') and not instance.is_soft_deleted:
+            elif old_data.get('is_soft_deleted') and not getattr(instance, 'is_soft_deleted', False):
                 action = AuditLog.ActionType.RESTORE
                 changes_summary = f"Restored {sender.__name__}: {str(instance)}"
             else:
-                action = AuditLog.ActionType.UPDATE
-                changes_summary = get_changes(old_data, new_data) if old_data else ''
+                # Check for approval status changes
+                if hasattr(instance, 'status') and 'status' in old_data:
+                    old_status = old_data.get('status')
+                    new_status = getattr(instance, 'status', None)
+                    if old_status != new_status:
+                        if new_status == 'approved':
+                            action = AuditLog.ActionType.APPROVE
+                            changes_summary = f"Approved {sender.__name__}: {str(instance)}"
+                        elif new_status == 'rejected':
+                            action = AuditLog.ActionType.REJECT
+                            changes_summary = f"Rejected {sender.__name__}: {str(instance)}"
+                        else:
+                            action = AuditLog.ActionType.UPDATE
+                            changes_summary = get_changes(old_data, new_data)
+                    else:
+                        action = AuditLog.ActionType.UPDATE
+                        changes_summary = get_changes(old_data, new_data)
+                else:
+                    action = AuditLog.ActionType.UPDATE
+                    changes_summary = get_changes(old_data, new_data)
         else:
             action = AuditLog.ActionType.UPDATE
-            changes_summary = get_changes(old_data, new_data) if old_data else ''
+            changes_summary = get_changes(old_data, new_data) if old_data else f"Updated {sender.__name__}: {str(instance)}"
     
     try:
         AuditLog.log_action(
@@ -120,17 +144,20 @@ def create_audit_log(sender, instance, created, **kwargs):
             request_path=request.path if request else '',
             request_method=request.method if request else '',
         )
-    except Exception:
-        # Don't let audit logging break the main operation
-        pass
+    except Exception as e:
+        # Log error but don't break the main operation
+        print(f"Audit log error: {e}")
 
 
 # Pre-delete signal for logging
 @receiver(pre_delete, sender=Income)
 @receiver(pre_delete, sender=Expense)
+@receiver(pre_delete, sender=ExpenseBill)
 @receiver(pre_delete, sender=Vendor)
 @receiver(pre_delete, sender=Category)
 @receiver(pre_delete, sender=IncomeSource)
+@receiver(pre_delete, sender=RecurringBill)
+@receiver(pre_delete, sender=BillPayment)
 def log_deletion(sender, instance, **kwargs):
     """Log permanent deletion."""
     request = get_current_request()
@@ -154,5 +181,51 @@ def log_deletion(sender, instance, **kwargs):
             request_path=request.path if request else '',
             request_method=request.method if request else '',
         )
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Audit log error: {e}")
+
+
+# Login/Logout signals
+@receiver(user_logged_in)
+def log_user_login(sender, request, user, **kwargs):
+    """Log user login."""
+    try:
+        AuditLog.log_action(
+            user=user,
+            action=AuditLog.ActionType.LOGIN,
+            model_name='User',
+            object_id=user.pk,
+            object_repr=user.username,
+            old_values=None,
+            new_values={'username': user.username, 'role': getattr(user, 'role', '')},
+            changes_summary=f"User '{user.username}' logged in",
+            ip_address=getattr(request, 'client_ip', None) if hasattr(request, 'client_ip') else request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT', ''),
+            request_path=request.path,
+            request_method=request.method,
+        )
+    except Exception as e:
+        print(f"Audit log error on login: {e}")
+
+
+@receiver(user_logged_out)
+def log_user_logout(sender, request, user, **kwargs):
+    """Log user logout."""
+    if user:
+        try:
+            AuditLog.log_action(
+                user=user,
+                action=AuditLog.ActionType.LOGOUT,
+                model_name='User',
+                object_id=user.pk,
+                object_repr=user.username,
+                old_values=None,
+                new_values=None,
+                changes_summary=f"User '{user.username}' logged out",
+                ip_address=getattr(request, 'client_ip', None) if hasattr(request, 'client_ip') else request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                request_path=request.path,
+                request_method=request.method,
+            )
+        except Exception as e:
+            print(f"Audit log error on logout: {e}")

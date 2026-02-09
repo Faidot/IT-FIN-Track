@@ -19,7 +19,7 @@
             <div class="stat-card">
                 <div class="stat-icon income"><i class="fas fa-check-circle"></i></div>
                 <div class="stat-content">
-                    <div class="stat-label">Paid This Month</div>
+                    <div class="stat-label">Paid This Month ({{ current_month_name }})</div>
                     <div class="stat-value">Rs. {{ paid_this_month|floatformat:0 }}</div>
                 </div>
             </div>
@@ -64,13 +64,20 @@
                     <h6 class="mb-0">
                         <i class="fas fa-sync-alt me-2 text-accent"></i>{{ bill.name }}
                     </h6>
-                    {% if bill.is_overdue %}
-                    <span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i>Overdue</span>
-                    {% elif bill.pending_payment %}
-                    <span class="badge bg-warning text-dark">Pending</span>
-                    {% else %}
-                    <span class="badge bg-success">Paid</span>
-                    {% endif %}
+                    <div>
+                        {% if request.user.can_edit %}
+                        <a href="{% url 'core:recurring_bill_edit' bill.pk %}" class="btn btn-sm btn-light me-1" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        {% endif %}
+                        {% if bill.current_month_paid %}
+                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>{{ current_month_name }} Paid</span>
+                        {% elif bill.is_overdue %}
+                        <span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i>Overdue</span>
+                        {% elif bill.pending_payment %}
+                        <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Pending</span>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
@@ -79,6 +86,7 @@
                         <small class="text-muted ms-2">{{ bill.vendor.name }}</small>
                         {% endif %}
                     </div>
+                    
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted">Amount:</span>
                         <strong>Rs. {{ bill.base_amount|floatformat:0 }}</strong>
@@ -87,6 +95,7 @@
                         <span class="text-muted">Frequency:</span>
                         <span class="badge bg-secondary">{{ bill.get_frequency_display }}</span>
                     </div>
+                    
                     {% if bill.pending_payment %}
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted">Due Date:</span>
@@ -95,7 +104,46 @@
                         </span>
                     </div>
                     {% endif %}
+                    
+                    <!-- Month-wise Payment Status - Clickable -->
                     <hr>
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-2">Payment History (Last 6 Months) - Click for details</small>
+                        <div class="d-flex justify-content-between">
+                            {% for month_data in bill.recent_payments %}
+                            <div class="text-center" style="flex: 1; cursor: pointer;" 
+                                 onclick="showMonthDetail('{{ month_data.month }}', {{ month_data.year }}, {{ bill.pk }})">
+                                <div class="mb-1">
+                                    {% if month_data.paid %}
+                                    <span class="badge rounded-pill bg-success month-badge" title="Paid - Rs. {{ month_data.amount|floatformat:0 }}">
+                                        <i class="fas fa-check"></i>
+                                    </span>
+                                    {% elif month_data.is_overdue %}
+                                    <span class="badge rounded-pill bg-danger blink month-badge" title="OVERDUE!">
+                                        <i class="fas fa-exclamation"></i>
+                                    </span>
+                                    {% elif month_data.pending %}
+                                    <span class="badge rounded-pill bg-warning month-badge" title="Pending">
+                                        <i class="fas fa-clock"></i>
+                                    </span>
+                                    {% elif month_data.is_current %}
+                                    <span class="badge rounded-pill bg-light text-muted month-badge" title="Due this month">
+                                        <i class="fas fa-minus"></i>
+                                    </span>
+                                    {% else %}
+                                    <span class="badge rounded-pill bg-light text-muted month-badge" title="No payment">
+                                        <i class="fas fa-minus"></i>
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <small class="{% if month_data.is_current %}fw-bold text-primary{% elif month_data.is_overdue %}fw-bold text-danger{% else %}text-muted{% endif %}" style="font-size: 0.7rem;">
+                                    {{ month_data.month }}
+                                </small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
                     <div class="d-flex gap-2">
                         <a href="{% url 'core:recurring_bill_detail' bill.pk %}" class="btn btn-sm btn-light flex-grow-1">
                             <i class="fas fa-eye me-1"></i>View
@@ -109,7 +157,7 @@
                 </div>
                 <div class="card-footer bg-transparent text-muted small">
                     {% if not bill.is_active %}<span class="badge bg-secondary me-2">Inactive</span>{% endif %}
-                    Next: {{ bill.get_next_due_date|date:"d M Y" }}
+                    Next Due: {{ bill.get_next_due_date|date:"d M Y" }}
                 </div>
             </div>
         </div>
@@ -131,4 +179,148 @@
         {% endfor %}
     </div>
 </div>
+
+<!-- Month Detail Modal -->
+<div class="modal fade" id="monthDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-calendar me-2"></i><span id="modalMonthTitle">Month Details</span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="monthDetailContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-accent" role="status"></div>
+                    <p class="mt-2 text-muted">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.month-badge {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.month-badge:hover {
+    transform: scale(1.3);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+</style>
+
+<script>
+function showMonthDetail(monthName, year, billId) {
+    const modal = new bootstrap.Modal(document.getElementById('monthDetailModal'));
+    document.getElementById('modalMonthTitle').textContent = monthName + ' ' + year + ' - Payment Details';
+    document.getElementById('monthDetailContent').innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-accent" role="status"></div>
+            <p class="mt-2 text-muted">Loading...</p>
+        </div>
+    `;
+    modal.show();
+    
+    // Fetch month details via AJAX (include credentials for session auth)
+    fetch(`/recurring-bills/month-detail/?month=${monthName}&year=${year}&bill_id=${billId}`, {
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            let html = '';
+            
+            // Determine status display
+            let statusIcon = '<i class="fas fa-minus-circle"></i>';
+            let statusColor = 'text-muted';
+            let statusText = 'NO RECORD';
+            
+            if (data.status === 'paid') {
+                statusIcon = '<i class="fas fa-check-circle"></i>';
+                statusColor = 'text-success';
+                statusText = 'PAID';
+            } else if (data.status === 'overdue') {
+                statusIcon = '<i class="fas fa-exclamation-circle"></i>';
+                statusColor = 'text-danger';
+                statusText = 'OVERDUE';
+            } else if (data.status === 'pending') {
+                statusIcon = '<i class="fas fa-clock"></i>';
+                statusColor = 'text-warning';
+                statusText = 'PENDING';
+            }
+            
+            // Summary stats
+            html += `
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h4 class="mb-0 ${statusColor}">${statusIcon}</h4>
+                                <small class="text-muted">${statusText}</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h4 class="mb-0">Rs. ${data.amount || '-'}</h4>
+                                <small class="text-muted">Amount</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h4 class="mb-0">${data.payment_type || '-'}</h4>
+                                <small class="text-muted">Payment Type</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Bill info
+            html += `
+                <div class="card">
+                    <div class="card-header"><h6 class="mb-0">Bill Information</h6></div>
+                    <div class="card-body">
+                        <table class="table table-sm mb-0">
+                            <tr><td class="text-muted">Bill Name:</td><td><strong>${data.bill_name}</strong></td></tr>
+                            <tr><td class="text-muted">Billing Period:</td><td>${data.period_start} - ${data.period_end}</td></tr>
+                            <tr><td class="text-muted">Due Date:</td><td>${data.due_date || '-'}</td></tr>
+                            ${data.paid_date ? `<tr><td class="text-muted">Paid On:</td><td class="text-success">${data.paid_date}</td></tr>` : ''}
+                            ${data.reference ? `<tr><td class="text-muted">Reference:</td><td>${data.reference}</td></tr>` : ''}
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            // Add message for no record
+            if (data.status === 'no_record') {
+                html += `
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No payment has been created for this billing period yet.
+                    </div>
+                `;
+            }
+            
+            document.getElementById('monthDetailContent').innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('monthDetailContent').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Error loading payment details. Please try again.
+                </div>
+            `;
+        });
+}
+</script>
 {% endblock %}

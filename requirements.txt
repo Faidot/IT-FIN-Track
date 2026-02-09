@@ -1,0 +1,31 @@
+# IT FIN Track Requirements
+# Django Web Application for IT Finance Management
+
+# Core Framework
+Django==5.0
+
+# Database
+sqlparse==0.5.4
+
+# Forms
+django-crispy-forms==2.5
+crispy-bootstrap5==2025.6
+
+# Date/Time
+python-dateutil==2.9.0.post0
+pytz==2025.2
+
+# API (optional)
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.1
+django-cors-headers==4.3.1
+
+# Reports & Export
+reportlab==4.4.9
+openpyxl==3.1.5
+
+# Environment Config
+python-decouple==3.8
+
+# Image Processing
+pillow==12.0.0

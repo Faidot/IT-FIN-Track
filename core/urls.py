@@ -14,6 +14,7 @@ from core.views import reports as reports_views
 from core.views import payment_tracker as payment_tracker_views
 from core.views import user as user_views
 from core.views import bills as bills_views
+from core.views import roles as role_views
 
 app_name = 'core'
 
@@ -37,6 +38,13 @@ urlpatterns = [
     path('users/<int:pk>/edit/', user_views.user_edit, name='user_edit'),
     path('users/<int:pk>/reset-password/', user_views.user_reset_password, name='user_reset_password'),
     path('users/<int:pk>/toggle-status/', user_views.user_toggle_status, name='user_toggle_status'),
+    
+    # Role Management (admin only)
+    path('roles/', role_views.role_list, name='role_list'),
+    path('roles/add/', role_views.role_create, name='role_create'),
+    path('roles/<int:pk>/', role_views.role_detail, name='role_detail'),
+    path('roles/<int:pk>/edit/', role_views.role_edit, name='role_edit'),
+    path('roles/<int:pk>/delete/', role_views.role_delete, name='role_delete'),
     
     # Income Sources (like Vendor for Expenses)
     path('income-sources/', income_source_views.income_source_list, name='income_source_list'),
@@ -71,6 +79,8 @@ urlpatterns = [
     path('recurring-bills/<int:pk>/delete/', bills_views.bill_delete, name='recurring_bill_delete'),
     path('recurring-bills/<int:pk>/pay/', bills_views.bill_pay, name='recurring_bill_pay'),
     path('recurring-bills/<int:pk>/generate/', bills_views.bill_generate_payment, name='recurring_bill_generate'),
+    path('recurring-bills/month-detail/', bills_views.month_detail, name='recurring_bill_month_detail'),
+
     
     # Vendors
     path('vendors/', vendor_views.vendor_list, name='vendor_list'),
@@ -90,7 +100,9 @@ urlpatterns = [
     path('reports/monthly-expense/', reports_views.monthly_expense_report, name='monthly_expense_report'),
     path('reports/income-expense/', reports_views.income_expense_statement, name='income_expense_statement'),
     path('reports/reimbursement/', reports_views.reimbursement_report, name='reimbursement_report'),
+    path('reports/account-balance/', reports_views.account_balance_report, name='account_balance_report'),
     path('reports/audit-trail/', reports_views.audit_trail, name='audit_trail'),
     path('reports/export/<str:report_type>/', reports_views.export_excel, name='export_excel'),
 ]
+
 

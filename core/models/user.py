@@ -10,15 +10,16 @@ class User(AbstractUser):
     """Custom User model with role-based access control."""
     
     class Role(models.TextChoices):
-        ADMIN = 'admin', 'Admin (IT/Finance Head)'
+        ADMIN = 'admin', 'Administrator'
         EXECUTIVE = 'executive', 'IT Executive'
-        MANAGER = 'manager', 'Manager/Accounts'
-        USER = 'user', 'Simple User (View Only)'
+        ACCOUNTANT = 'accountant', 'Accountant'
+        MANAGER = 'manager', 'Manager'
+        VIEWER = 'viewer', 'Viewer'
     
     role = models.CharField(
         max_length=20,
         choices=Role.choices,
-        default=Role.USER,
+        default=Role.VIEWER,
         help_text='User role determines access permissions'
     )
     department = models.CharField(
@@ -56,22 +57,26 @@ class User(AbstractUser):
         return self.role == self.Role.EXECUTIVE
     
     @property
+    def is_accountant(self):
+        return self.role == self.Role.ACCOUNTANT
+    
+    @property
     def is_manager(self):
         return self.role == self.Role.MANAGER
     
     @property
-    def is_simple_user(self):
-        return self.role == self.Role.USER
+    def is_viewer(self):
+        return self.role == self.Role.VIEWER
     
     @property
     def can_edit(self):
         """Check if user can create/edit transactions."""
-        return self.role in [self.Role.ADMIN, self.Role.EXECUTIVE]
+        return self.role in [self.Role.ADMIN, self.Role.EXECUTIVE, self.Role.ACCOUNTANT]
     
     @property
     def can_approve(self):
         """Check if user can approve transactions."""
-        return self.role == self.Role.ADMIN
+        return self.role in [self.Role.ADMIN, self.Role.MANAGER]
     
     @property
     def can_delete(self):
@@ -81,4 +86,14 @@ class User(AbstractUser):
     @property
     def can_view_reports(self):
         """Check if user can view reports."""
-        return self.role in [self.Role.ADMIN, self.Role.MANAGER, self.Role.EXECUTIVE]
+        return self.role in [self.Role.ADMIN, self.Role.MANAGER, self.Role.ACCOUNTANT, self.Role.EXECUTIVE]
+    
+    @property
+    def can_manage_users(self):
+        """Check if user can manage other users."""
+        return self.role == self.Role.ADMIN
+    
+    @property
+    def can_manage_roles(self):
+        """Check if user can manage roles (admin only)."""
+        return self.role == self.Role.ADMIN

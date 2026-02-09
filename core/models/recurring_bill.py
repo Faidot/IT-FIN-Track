@@ -153,6 +153,10 @@ class BillPayment(models.Model):
         PENDING = 'pending', 'Pending'
         PAID = 'paid', 'Paid'
     
+    class PaymentType(models.TextChoices):
+        IT_PAYMENT = 'it_payment', 'IT Payment (from IT Budget)'
+        ACCOUNTS_PAY = 'accounts_pay', 'Accounts Direct Pay (to Vendor)'
+    
     bill = models.ForeignKey(
         RecurringBill,
         on_delete=models.CASCADE,
@@ -176,6 +180,20 @@ class BillPayment(models.Model):
         max_length=20,
         choices=Status.choices,
         default=Status.PENDING
+    )
+    payment_type = models.CharField(
+        max_length=20,
+        choices=PaymentType.choices,
+        default=PaymentType.IT_PAYMENT,
+        help_text='Who handles the payment'
+    )
+    linked_income = models.ForeignKey(
+        'Income',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='bill_payments',
+        help_text='Income source for this payment'
     )
     paid_date = models.DateField(
         null=True,
@@ -212,3 +230,8 @@ class BillPayment(models.Model):
     @property
     def is_overdue(self):
         return self.status == 'pending' and self.due_date < date.today()
+    
+    @property
+    def is_accounts_pay(self):
+        return self.payment_type == self.PaymentType.ACCOUNTS_PAY
+

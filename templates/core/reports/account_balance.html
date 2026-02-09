@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block title %}Account Balance Report - IT FIN Track{% endblock %}
+{% block page_title %}Account Balance Report{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <select name="source" class="form-select">
+                    <option value="">All Sources</option>
+                    {% for source in sources %}
+                    <option value="{{ source.pk }}" {% if source_filter == source.pk|stringformat:'i' %}selected{% endif %}>{{ source.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <input type="date" class="form-control" name="date_from" value="{{ date_from }}" placeholder="From">
+            </div>
+            <div class="col-md-2">
+                <input type="date" class="form-control" name="date_to" value="{{ date_to }}" placeholder="To">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-secondary me-2"><i class="fas fa-filter me-1"></i>Filter</button>
+                <a href="{% url 'core:account_balance_report' %}" class="btn btn-light">Clear</a>
+            </div>
+            <div class="col-md-2 text-end">
+                <a href="{% url 'core:report_dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-success bg-opacity-10 border-success">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-success mb-1">Total Received</h6>
+                            <h3 class="mb-0 text-success fw-bold">Rs. {{ total_received|floatformat:0 }}</h3>
+                        </div>
+                        <div class="text-success fs-2">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger bg-opacity-10 border-danger">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-danger mb-1">Total Spent</h6>
+                            <h3 class="mb-0 text-danger fw-bold">Rs. {{ total_spent|floatformat:0 }}</h3>
+                        </div>
+                        <div class="text-danger fs-2">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-primary bg-opacity-10 border-primary">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-primary mb-1">Remaining Balance</h6>
+                            <h3 class="mb-0 text-primary fw-bold">Rs. {{ total_remaining|floatformat:0 }}</h3>
+                        </div>
+                        <div class="text-primary fs-2">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Balance by Source -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>Balance by Source</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if source_data %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Source</th>
+                            <th class="text-end">Received</th>
+                            <th class="text-end">Spent</th>
+                            <th class="text-end">Remaining</th>
+                            <th>Usage</th>
+                            <th class="text-center">Entries</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for source in source_data %}
+                        <tr>
+                            <td>
+                                <i class="fas {{ source.icon }} me-2" style="color: {{ source.color }}"></i>
+                                <strong>{{ source.name }}</strong>
+                            </td>
+                            <td class="text-end text-success fw-bold">Rs. {{ source.received|floatformat:0 }}</td>
+                            <td class="text-end text-danger">Rs. {{ source.spent|floatformat:0 }}</td>
+                            <td class="text-end">
+                                {% if source.remaining > 0 %}
+                                <span class="text-primary fw-bold">Rs. {{ source.remaining|floatformat:0 }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Fully Used</span>
+                                {% endif %}
+                            </td>
+                            <td style="width: 150px;">
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar {% if source.usage_percent >= 90 %}bg-danger{% elif source.usage_percent >= 70 %}bg-warning{% else %}bg-success{% endif %}" 
+                                         role="progressbar" 
+                                         style="width: {{ source.usage_percent|floatformat:0 }}%">
+                                        {{ source.usage_percent|floatformat:0 }}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark">{{ source.count }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr class="fw-bold">
+                            <td>Total</td>
+                            <td class="text-end text-success">Rs. {{ total_received|floatformat:0 }}</td>
+                            <td class="text-end text-danger">Rs. {{ total_spent|floatformat:0 }}</td>
+                            <td class="text-end text-primary">Rs. {{ total_remaining|floatformat:0 }}</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state p-5 text-center">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No income data found for the selected filters.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Detailed Income Entries -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Income Entry Details</h5>
+            <span class="badge bg-secondary">{{ income_balances|length }} entries</span>
+        </div>
+        <div class="card-body p-0">
+            {% if income_balances %}
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Source</th>
+                            <th>Details</th>
+                            <th class="text-end">Received</th>
+                            <th class="text-end">Spent</th>
+                            <th class="text-end">Remaining</th>
+                            <th>Usage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in income_balances %}
+                        <tr>
+                            <td>{{ item.income.date|date:"d M Y" }}</td>
+                            <td>
+                                <i class="fas {{ item.income.source.icon }} me-1" style="color: {{ item.income.source.color }}"></i>
+                                {{ item.income.source.name }}
+                            </td>
+                            <td>
+                                <small>{{ item.income.source_detail|default:item.income.description|truncatechars:30 }}</small>
+                            </td>
+                            <td class="text-end text-success">Rs. {{ item.income.amount|floatformat:0 }}</td>
+                            <td class="text-end text-danger">Rs. {{ item.spent|floatformat:0 }}</td>
+                            <td class="text-end">
+                                {% if item.remaining > 0 %}
+                                <span class="text-primary fw-bold">Rs. {{ item.remaining|floatformat:0 }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Used</span>
+                                {% endif %}
+                            </td>
+                            <td style="width: 100px;">
+                                <div class="progress" style="height: 15px;">
+                                    <div class="progress-bar {% if item.usage_percent >= 90 %}bg-danger{% elif item.usage_percent >= 70 %}bg-warning{% else %}bg-success{% endif %}" 
+                                         style="width: {{ item.usage_percent|floatformat:0 }}%">
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state p-5 text-center">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No income entries found.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

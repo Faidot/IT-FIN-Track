@@ -6,7 +6,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Sum
 
 from core.models import Income, IncomeSource
 from core.forms import IncomeForm
@@ -40,6 +40,10 @@ def income_list(request):
     if date_to:
         incomes = incomes.filter(date__lte=date_to)
     
+    # Calculate total of filtered results (before pagination)
+    total_amount = incomes.aggregate(total=Sum('amount'))['total'] or 0
+    total_count = incomes.count()
+    
     # Pagination
     paginator = Paginator(incomes, 15)
     page = request.GET.get('page')
@@ -55,6 +59,8 @@ def income_list(request):
         'date_from': date_from,
         'date_to': date_to,
         'sources': sources,
+        'total_amount': total_amount,
+        'total_count': total_count,
     }
     return render(request, 'core/income/list.html', context)
 

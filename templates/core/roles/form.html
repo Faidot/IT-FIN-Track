@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} - IT FIN Track{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-user-tag me-2"></i>{{ title }}</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <!-- Basic Info -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label">Role Name *</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex gap-4 mt-4">
+                            <div class="form-check">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="id_is_active">Active</label>
+                            </div>
+                            <div class="form-check">
+                                {{ form.is_default }}
+                                <label class="form-check-label" for="id_is_default">Default Role</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label">Description</label>
+                    {{ form.description }}
+                </div>
+                
+                <hr>
+                
+                <!-- Core Permissions -->
+                <h6 class="mb-3"><i class="fas fa-shield-alt me-2 text-primary"></i>Core Permissions</h6>
+                <div class="row mb-4 ps-3">
+                    <div class="col-md-2">
+                        <div class="form-check">
+                            {{ form.can_view }}
+                            <label class="form-check-label" for="id_can_view">
+                                <i class="fas fa-eye text-info me-1"></i>View
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-check">
+                            {{ form.can_create }}
+                            <label class="form-check-label" for="id_can_create">
+                                <i class="fas fa-plus text-success me-1"></i>Create
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-check">
+                            {{ form.can_edit }}
+                            <label class="form-check-label" for="id_can_edit">
+                                <i class="fas fa-edit text-warning me-1"></i>Edit
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-check">
+                            {{ form.can_delete }}
+                            <label class="form-check-label" for="id_can_delete">
+                                <i class="fas fa-trash text-danger me-1"></i>Delete
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-check">
+                            {{ form.can_approve }}
+                            <label class="form-check-label" for="id_can_approve">
+                                <i class="fas fa-check-circle text-primary me-1"></i>Approve
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <!-- Module Access -->
+                <h6 class="mb-3"><i class="fas fa-cubes me-2 text-accent"></i>Module Access</h6>
+                <div class="row mb-4 ps-3">
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            {{ form.can_manage_income }}
+                            <label class="form-check-label" for="id_can_manage_income">
+                                <i class="fas fa-coins me-1"></i>Manage Income
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            {{ form.can_manage_expenses }}
+                            <label class="form-check-label" for="id_can_manage_expenses">
+                                <i class="fas fa-shopping-cart me-1"></i>Manage Expenses
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            {{ form.can_manage_vendors }}
+                            <label class="form-check-label" for="id_can_manage_vendors">
+                                <i class="fas fa-building me-1"></i>Manage Vendors
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            {{ form.can_manage_categories }}
+                            <label class="form-check-label" for="id_can_manage_categories">
+                                <i class="fas fa-tags me-1"></i>Manage Categories
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            {{ form.can_manage_recurring_bills }}
+                            <label class="form-check-label" for="id_can_manage_recurring_bills">
+                                <i class="fas fa-sync-alt me-1"></i>Manage Recurring Bills
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check">
+                            {{ form.can_manage_income_sources }}
+                            <label class="form-check-label" for="id_can_manage_income_sources">
+                                <i class="fas fa-wallet me-1"></i>Manage Income Sources
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <!-- Report Permissions -->
+                <h6 class="mb-3"><i class="fas fa-chart-bar me-2 text-success"></i>Report Access</h6>
+                <div class="row mb-4 ps-3">
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            {{ form.can_view_reports }}
+                            <label class="form-check-label" for="id_can_view_reports">
+                                Reports Dashboard
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            {{ form.can_view_expense_report }}
+                            <label class="form-check-label" for="id_can_view_expense_report">
+                                Expense Report
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            {{ form.can_view_income_report }}
+                            <label class="form-check-label" for="id_can_view_income_report">
+                                Income Report
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            {{ form.can_view_account_balance }}
+                            <label class="form-check-label" for="id_can_view_account_balance">
+                                Account Balance
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            {{ form.can_view_reimbursement_report }}
+                            <label class="form-check-label" for="id_can_view_reimbursement_report">
+                                Reimbursement Report
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            {{ form.can_view_audit_trail }}
+                            <label class="form-check-label" for="id_can_view_audit_trail">
+                                Audit Trail
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            {{ form.can_export_data }}
+                            <label class="form-check-label" for="id_can_export_data">
+                                Export Data
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <!-- Admin Permissions -->
+                <h6 class="mb-3"><i class="fas fa-user-shield me-2 text-danger"></i>Admin Permissions</h6>
+                <div class="row mb-4 ps-3">
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            {{ form.can_manage_users }}
+                            <label class="form-check-label" for="id_can_manage_users">
+                                <i class="fas fa-users me-1"></i>Manage Users
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            {{ form.can_manage_roles }}
+                            <label class="form-check-label" for="id_can_manage_roles">
+                                <i class="fas fa-user-tag me-1"></i>Manage Roles
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'core:role_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Save Role
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

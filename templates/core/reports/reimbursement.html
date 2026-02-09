@@ -1,232 +1,166 @@
 {% extends 'base.html' %}
-{% block title %}Reimbursement Report - IT FIN Track{% endblock %}
-{% block page_title %}Reimbursement Report{% endblock %}
+{% block title %}Recurring Bill Report - IT FIN Track{% endblock %}
+{% block page_title %}Recurring Bill Report{% endblock %}
 
 {% block content %}
 <div class="fade-in">
+    <!-- Year Selector -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h5 class="mb-0"><i class="fas fa-sync-alt me-2 text-accent"></i>Monthly Payment Status - {{ current_year }}</h5>
+        </div>
+        <div class="btn-group">
+            {% for year in years %}
+            <a href="?year={{ year }}" class="btn {% if year == current_year %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+                {{ year }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    
     <!-- Summary Stats -->
     <div class="row g-4 mb-4">
         <div class="col-lg-3 col-md-6">
             <div class="stat-card">
-                <div class="stat-icon warning"><i class="fas fa-clock"></i></div>
-                <div class="stat-content">
-                    <div class="stat-label">Pending Amount</div>
-                    <div class="stat-value">Rs. {{ total_pending|floatformat:0 }}</div>
-                    <small class="text-muted">{{ pending_count }} items pending</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-3 col-md-6">
-            <div class="stat-card">
                 <div class="stat-icon income"><i class="fas fa-check-circle"></i></div>
                 <div class="stat-content">
-                    <div class="stat-label">Completed Amount</div>
-                    <div class="stat-value amount-positive">Rs. {{ total_completed|floatformat:0 }}</div>
-                    <small class="text-muted">{{ completed_count }} items reimbursed</small>
+                    <div class="stat-label">Total Paid ({{ current_year }})</div>
+                    <div class="stat-value amount-positive">Rs. {{ total_paid_year|floatformat:0 }}</div>
                 </div>
             </div>
         </div>
         <div class="col-lg-3 col-md-6">
             <div class="stat-card">
-                <div class="stat-icon danger"><i class="fas fa-hourglass-half"></i></div>
+                <div class="stat-icon warning"><i class="fas fa-clock"></i></div>
                 <div class="stat-content">
-                    <div class="stat-label">Overdue (30+ days)</div>
-                    <div class="stat-value amount-negative">Rs. {{ age_buckets|dictsort:0|last|last|floatformat:0 }}</div>
+                    <div class="stat-label">Pending Payments</div>
+                    <div class="stat-value">Rs. {{ total_pending|floatformat:0 }}</div>
                 </div>
             </div>
         </div>
         <div class="col-lg-3 col-md-6">
             <div class="stat-card">
-                <div class="stat-icon primary"><i class="fas fa-percentage"></i></div>
+                <div class="stat-icon primary"><i class="fas fa-building"></i></div>
                 <div class="stat-content">
-                    <div class="stat-label">Completion Rate</div>
-                    <div class="stat-value">
-                        {% if pending_count|add:completed_count > 0 %}
-                        {{ completed_count|floatformat:0 }}%
-                        {% else %}0%{% endif %}
-                    </div>
+                    <div class="stat-label">IT Budget Payments</div>
+                    <div class="stat-value">Rs. {{ it_payment_total|floatformat:0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: #6F42C1;"><i class="fas fa-university"></i></div>
+                <div class="stat-content">
+                    <div class="stat-label">Accounts Direct Pay</div>
+                    <div class="stat-value">Rs. {{ accounts_pay_total|floatformat:0 }}</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Age Analysis -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2 text-accent"></i>Pending Age Analysis</h5>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                {% for label, amount in age_buckets.items %}
-                <div class="col-md-3">
-                    <div class="border rounded p-3 text-center {% if label == '30+ days' and amount > 0 %}border-danger bg-danger bg-opacity-10{% endif %}">
-                        <h4 class="mb-1 {% if label == '30+ days' and amount > 0 %}text-danger{% endif %}">Rs. {{ amount|floatformat:0 }}</h4>
-                        <small class="{% if label == '30+ days' and amount > 0 %}text-danger fw-bold{% else %}text-muted{% endif %}">{{ label }}</small>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Breakdown Tables -->
-    <div class="row g-4 mb-4">
-        <div class="col-lg-6">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0"><i class="fas fa-coins me-2 text-accent"></i>Pending by Source</h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead>
-                                <tr><th>Source</th><th class="text-center">Count</th><th class="text-end">Amount</th></tr>
-                            </thead>
-                            <tbody>
-                                {% for src in pending_by_source %}
-                                <tr>
-                                    <td>
-                                        <span class="badge me-2" style="background:{{ src.source__color }}">
-                                            <i class="fas fa-money-bill"></i>
-                                        </span>
-                                        {{ src.source__name }}
-                                    </td>
-                                    <td class="text-center">{{ src.count }}</td>
-                                    <td class="text-end fw-bold">Rs. {{ src.total|floatformat:0 }}</td>
-                                </tr>
-                                {% empty %}
-                                <tr><td colspan="3" class="text-center text-muted py-4">No pending reimbursements</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-6">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="card-title mb-0"><i class="fas fa-user me-2 text-accent"></i>Pending by User</h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead>
-                                <tr><th>User</th><th class="text-center">Count</th><th class="text-end">Amount</th></tr>
-                            </thead>
-                            <tbody>
-                                {% for u in pending_by_user %}
-                                <tr>
-                                    <td>
-                                        <i class="fas fa-user-circle me-2 text-muted"></i>
-                                        {{ u.created_by__first_name }} {{ u.created_by__last_name }}
-                                        {% if not u.created_by__first_name %}@{{ u.created_by__username }}{% endif %}
-                                    </td>
-                                    <td class="text-center">{{ u.count }}</td>
-                                    <td class="text-end fw-bold">Rs. {{ u.total|floatformat:0 }}</td>
-                                </tr>
-                                {% empty %}
-                                <tr><td colspan="3" class="text-center text-muted py-4">No pending reimbursements</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Pending Items -->
-    <div class="card mb-4">
-        <div class="card-header bg-warning">
-            <h5 class="card-title mb-0"><i class="fas fa-clock me-2"></i>Pending Reimbursements</h5>
-        </div>
-        <div class="card-body p-0">
-            {% if pending %}
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Source</th>
-                            <th>Description</th>
-                            <th>Created By</th>
-                            <th>Age</th>
-                            <th class="text-end">Amount</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% now "Y-m-d" as today %}
-                        {% for inc in pending %}
-                        <tr>
-                            <td>{{ inc.date|date:"d M Y" }}</td>
-                            <td>
-                                <span class="badge" style="background:{{ inc.source.color }}">{{ inc.source.name }}</span>
-                            </td>
-                            <td>{{ inc.description|truncatewords:8|default:inc.source_detail|truncatewords:5|default:"-" }}</td>
-                            <td>{{ inc.created_by.get_full_name|default:inc.created_by.username }}</td>
-                            <td>
-                                {% widthratio inc.date|timesince:" day"|cut:","  1 1 as days_old %}
-                                <span class="badge {% if inc.date|timesince|slice:'0:2'|add:'0' > 30 %}bg-danger{% elif inc.date|timesince|slice:'0:2'|add:'0' > 14 %}bg-warning{% else %}bg-success{% endif %}">
-                                    {{ inc.date|timesince }}
-                                </span>
-                            </td>
-                            <td class="text-end fw-bold">Rs. {{ inc.amount|floatformat:0 }}</td>
-                            <td class="text-center">
-                                <a href="{% url 'core:income_detail' inc.pk %}" class="btn btn-sm btn-light" title="View">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center py-5">
-                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                <h5>All Clear!</h5>
-                <p class="text-muted">No pending reimbursements</p>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Completed Items -->
+    <!-- Payment Matrix -->
     <div class="card">
-        <div class="card-header bg-success text-white">
-            <h5 class="card-title mb-0"><i class="fas fa-check-circle me-2"></i>Recently Completed</h5>
+        <div class="card-header">
+            <h5 class="card-title mb-0"><i class="fas fa-table me-2 text-accent"></i>Month-wise Payment Status</h5>
         </div>
         <div class="card-body p-0">
-            {% if completed %}
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead>
+                <table class="table table-bordered table-hover mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <th>Date Received</th>
-                            <th>Reimbursed On</th>
-                            <th>Source</th>
-                            <th>Description</th>
-                            <th class="text-end">Amount</th>
+                            <th style="min-width: 200px;">Bill Name</th>
+                            {% for month in month_names %}
+                            <th class="text-center {% if forloop.counter == current_month %}bg-primary text-white{% endif %}" style="min-width: 60px;">
+                                {{ month }}
+                            </th>
+                            {% endfor %}
+                            <th class="text-end" style="min-width: 120px;">Total Paid</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for inc in completed %}
+                        {% for data in bill_data %}
                         <tr>
-                            <td>{{ inc.date|date:"d M Y" }}</td>
-                            <td>{{ inc.reimbursed_date|date:"d M Y"|default:"-" }}</td>
-                            <td><span class="badge" style="background:{{ inc.source.color }}">{{ inc.source.name }}</span></td>
-                            <td>{{ inc.description|truncatewords:8|default:"-" }}</td>
-                            <td class="text-end fw-bold amount-positive">Rs. {{ inc.amount|floatformat:0 }}</td>
+                            <td>
+                                <a href="{% url 'core:recurring_bill_detail' data.bill.pk %}" class="text-decoration-none">
+                                    <strong>{{ data.bill.name }}</strong>
+                                </a>
+                                <br>
+                                <small class="text-muted">
+                                    <span class="badge" style="background:{{ data.bill.category.color }}; font-size: 0.65rem;">{{ data.bill.category.name }}</span>
+                                    Rs. {{ data.bill.base_amount|floatformat:0 }}/{{ data.bill.get_frequency_display }}
+                                </small>
+                            </td>
+                            {% for month_data in data.months %}
+                            <td class="text-center align-middle {% if month_data.is_current %}bg-light{% endif %}">
+                                {% if month_data.paid %}
+                                    {% if month_data.payment_type == 'accounts_pay' %}
+                                    <span class="badge rounded-pill bg-info" title="Accounts Pay - Rs. {{ month_data.amount|floatformat:0 }}">
+                                        <i class="fas fa-university"></i>
+                                    </span>
+                                    {% else %}
+                                    <span class="badge rounded-pill bg-success" title="IT Payment - Rs. {{ month_data.amount|floatformat:0 }}">
+                                        <i class="fas fa-check"></i>
+                                    </span>
+                                    {% endif %}
+                                {% elif month_data.is_overdue %}
+                                    <span class="badge rounded-pill bg-danger" title="OVERDUE!" style="animation: blink 1s infinite;">
+                                        <i class="fas fa-exclamation"></i>
+                                    </span>
+                                {% elif month_data.pending %}
+                                    <span class="badge rounded-pill bg-warning" title="Pending">
+                                        <i class="fas fa-clock"></i>
+                                    </span>
+                                {% elif month_data.is_future %}
+                                    <span class="text-muted">-</span>
+                                {% else %}
+                                    <span class="badge rounded-pill bg-danger" title="Not Paid">
+                                        <i class="fas fa-times"></i>
+                                    </span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                            <td class="text-end fw-bold">
+                                Rs. {{ data.total_paid|floatformat:0 }}
+                                <br>
+                                <small class="text-muted">{{ data.paid_count }} payments</small>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="14" class="text-center py-5 text-muted">
+                                <i class="fas fa-receipt fa-2x mb-2"></i>
+                                <br>No recurring bills found
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            {% else %}
-            <div class="text-center py-4 text-muted">No completed reimbursements yet</div>
-            {% endif %}
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="card mt-4">
+        <div class="card-body">
+            <h6 class="mb-3">Legend</h6>
+            <div class="d-flex gap-4 flex-wrap">
+                <div>
+                    <span class="badge rounded-pill bg-success me-2"><i class="fas fa-check"></i></span>
+                    IT Budget Payment
+                </div>
+                <div>
+                    <span class="badge rounded-pill bg-info me-2"><i class="fas fa-university"></i></span>
+                    Accounts Direct Pay
+                </div>
+                <div>
+                    <span class="badge rounded-pill bg-warning me-2"><i class="fas fa-clock"></i></span>
+                    Pending Payment
+                </div>
+                <div>
+                    <span class="badge rounded-pill bg-danger me-2"><i class="fas fa-times"></i></span>
+                    Not Paid / Missed
+                </div>
+            </div>
         </div>
     </div>
 </div>
