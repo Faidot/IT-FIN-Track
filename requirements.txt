@@ -6,6 +6,7 @@ Django==5.0
 
 # Database
 sqlparse==0.5.4
+psycopg2-binary==2.9.9
 
 # Forms
 django-crispy-forms==2.5
