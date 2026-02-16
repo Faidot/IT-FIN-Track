@@ -11,7 +11,7 @@
                 <label class="form-label">Year</label>
                 <select name="year" class="form-select">
                     {% for y in years %}
-                    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                    <option value="{{ y }}" {% if y==year %}selected{% endif %}>{{ y }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -19,13 +19,14 @@
                 <label class="form-label">Month</label>
                 <select name="month" class="form-select">
                     {% for m in months %}
-                    <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m|date:"F" }}</option>
+                    <option value="{{ m }}" {% if m==month %}selected{% endif %}>{{ m|date:"F" }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="col-md-4">
                 <button type="submit" class="btn btn-primary"><i class="fas fa-filter me-1"></i>Apply</button>
-                <a href="{% url 'core:export_excel' 'expenses' %}" class="btn btn-success"><i class="fas fa-file-excel me-1"></i>Export</a>
+                <a href="{% url 'core:export_excel' 'expenses' %}" class="btn btn-success"><i
+                        class="fas fa-file-excel me-1"></i>Export</a>
             </div>
         </form>
     </div>
@@ -49,7 +50,8 @@
                 </div>
                 <div class="stat-content">
                     <div class="stat-label">vs Last Month</div>
-                    <div class="stat-value {% if change_percent <= 0 %}amount-positive{% else %}amount-negative{% endif %}">
+                    <div
+                        class="stat-value {% if change_percent <= 0 %}amount-positive{% else %}amount-negative{% endif %}">
                         {{ change_percent|floatformat:1 }}%
                     </div>
                     <small class="text-muted">Rs. {{ prev_total|floatformat:0 }} prev</small>
@@ -111,7 +113,12 @@
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
                             <thead>
-                                <tr><th>Category</th><th class="text-center">Count</th><th class="text-end">Amount</th><th class="text-end">%</th></tr>
+                                <tr>
+                                    <th>Category</th>
+                                    <th class="text-center">Count</th>
+                                    <th class="text-end">Amount</th>
+                                    <th class="text-end">%</th>
+                                </tr>
                             </thead>
                             <tbody>
                                 {% for cat in category_breakdown %}
@@ -126,13 +133,17 @@
                                     <td class="text-end fw-bold">Rs. {{ cat.total|floatformat:0 }}</td>
                                     <td class="text-end">
                                         <div class="progress" style="height:8px;width:60px;display:inline-block">
-                                            <div class="progress-bar" style="width:{{ cat.percentage }}%;background:{{ cat.category__color }}"></div>
+                                            <div class="progress-bar"
+                                                style="width:{{ cat.percentage }}%;background:{{ cat.category__color }}">
+                                            </div>
                                         </div>
                                         <small class="ms-1">{{ cat.percentage|floatformat:0 }}%</small>
                                     </td>
                                 </tr>
                                 {% empty %}
-                                <tr><td colspan="4" class="text-center text-muted py-4">No data</td></tr>
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">No data</td>
+                                </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -149,7 +160,11 @@
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
                             <thead>
-                                <tr><th>Vendor</th><th class="text-center">Transactions</th><th class="text-end">Amount</th></tr>
+                                <tr>
+                                    <th>Vendor</th>
+                                    <th class="text-center">Transactions</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
                             </thead>
                             <tbody>
                                 {% for v in vendor_breakdown %}
@@ -159,7 +174,9 @@
                                     <td class="text-end fw-bold">Rs. {{ v.total|floatformat:0 }}</td>
                                 </tr>
                                 {% empty %}
-                                <tr><td colspan="3" class="text-center text-muted py-4">No vendor data</td></tr>
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4">No vendor data</td>
+                                </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -182,7 +199,8 @@
                         <div class="col-md-3">
                             <div class="border rounded p-3 text-center">
                                 <h4 class="mb-1">Rs. {{ s.total|floatformat:0 }}</h4>
-                                <span class="badge {% if s.status == 'approved' %}bg-success{% elif s.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                                <span
+                                    class="badge {% if s.status == 'approved' %}bg-success{% elif s.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
                                     {{ s.status|title }}
                                 </span>
                                 <div class="text-muted small mt-1">{{ s.count }} expenses</div>
@@ -198,7 +216,8 @@
     <!-- Recent Expenses -->
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0"><i class="fas fa-list me-2 text-accent"></i>Expenses ({{ month_name }} {{ year }})</h5>
+            <h5 class="card-title mb-0"><i class="fas fa-list me-2 text-accent"></i>Expenses ({{ month_name }} {{ year
+                }})</h5>
         </div>
         <div class="card-body p-0">
             {% if expenses %}
@@ -219,14 +238,15 @@
                         <tr>
                             <td>{{ exp.date|date:"d M" }}</td>
                             <td>
-                                <span class="badge" style="background:{{ exp.category.color }}">{{ exp.category.name }}</span>
+                                <span class="badge" style="background:{{ exp.category.color }}">{{ exp.category.name
+                                    }}</span>
                             </td>
                             <td>{{ exp.vendor.name|default:"-" }}</td>
-                            <td>{{ exp.description|truncatewords:8|default:exp.purpose|truncatewords:8|default:"-" }}</td>
+                            <td>{{ exp.description|truncatewords:8|default:exp.purpose|truncatewords:8|default:"-" }}
+                            </td>
                             <td>
-                                <span class="badge {% if exp.status == 'approved' %}bg-success{% elif exp.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
-                                    {{ exp.get_status_display }}
-                                </span>
+                                <span
+                                    class="badge {% if exp.status == 'approved' %}bg-success{% elif exp.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">{{ exp.get_status_display }}</span>
                             </td>
                             <td class="text-end fw-bold amount-negative">Rs. {{ exp.amount|floatformat:0 }}</td>
                         </tr>
@@ -246,34 +266,34 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Category Chart
-new Chart(document.getElementById('categoryChart').getContext('2d'), {
-    type: 'doughnut',
-    data: {
-        labels: {{ cat_labels|safe }},
+    // Category Chart
+    new Chart(document.getElementById('categoryChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ cat_labels| safe }},
         datasets: [{
-            data: {{ cat_values|safe }},
-            backgroundColor: {{ cat_colors|safe }}
+            data: {{ cat_values| safe }},
+        backgroundColor: {{ cat_colors| safe }}
         }]
     },
-    options: {
+        options: {
         responsive: true,
         plugins: { legend: { position: 'bottom' } }
     }
 });
 
-// Daily Chart
-new Chart(document.getElementById('dailyChart').getContext('2d'), {
-    type: 'bar',
-    data: {
-        labels: {{ daily_labels|safe }},
+    // Daily Chart
+    new Chart(document.getElementById('dailyChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: {{ daily_labels| safe }},
         datasets: [{
             label: 'Daily Spending',
-            data: {{ daily_values|safe }},
-            backgroundColor: '#DC3545'
+            data: {{ daily_values| safe }},
+        backgroundColor: '#DC3545'
         }]
     },
-    options: {
+        options: {
         responsive: true,
         plugins: { legend: { display: false } },
         scales: { y: { beginAtZero: true } }

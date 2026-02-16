@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}System Backup & Restore{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-2 text-gray-800">System Backup & Restore</h1>
+            <p class="mb-4">Manage system data backups and restoration. Only available to administrators.</p>
+        </div>
+    </div>
+
+
+
+    <div class="row">
+        <!-- Backup Section -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Create Backup</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-download fa-4x text-gray-300 mb-3"></i>
+                        <h4 class="h5">Download Full System Backup</h4>
+                        <p class="text-muted">
+                            Generates a ZIP archive containing:
+                        <ul class="text-start d-inline-block">
+                            <li>Full database dump (`db.json`)</li>
+                            <li>All media files (uploads, receipts, etc.)</li>
+                        </ul>
+                        </p>
+                    </div>
+
+                    <form method="post" action="{% url 'core:system_backup' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="download_backup">
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-download me-2"></i> Download Backup
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Restore Section -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4 border-left-danger">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-danger">Restore System</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-upload fa-4x text-danger mb-3"></i>
+                        <h4 class="h5 text-danger">Danger Zone</h4>
+                        <p class="text-muted text-start small">
+                            <strong>WARNING:</strong> Restoring from a backup will:
+                        <ul class="text-start text-danger small">
+                            <li>Overwrite current database records.</li>
+                            <li>Merge/Overwrite media files.</li>
+                            <li>This action cannot be undone.</li>
+                        </ul>
+                        Please ensure you have a current backup before proceeding.
+                        </p>
+                    </div>
+
+                    <form method="post" action="{% url 'core:system_restore' %}" enctype="multipart/form-data"
+                        id="restoreForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="backup_file" class="form-label">Select Backup File (.zip)</label>
+                            <input class="form-control" type="file" id="backup_file" name="backup_file" accept=".zip"
+                                required>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-danger" onclick="confirmRestore()">
+                                <i class="fas fa-history me-2"></i> Restore System
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function confirmRestore() {
+        if (confirm('CRITICAL WARNING: This will overwrite your current database and media files. Are you absolutely sure you want to proceed?')) {
+            document.getElementById('restoreForm').submit();
+        }
+    }
+</script>
+{% endblock %}

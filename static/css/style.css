@@ -1106,7 +1106,7 @@ a:hover {
 }
 
 .main-content>.container-fluid,
-.main-content>div:first-of-type {
+.main-content>div:last-of-type {
     flex: 1;
 }
 

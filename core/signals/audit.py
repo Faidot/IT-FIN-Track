@@ -7,13 +7,19 @@ from django.db.models.signals import post_save, pre_save, pre_delete
 from django.dispatch import receiver
 from django.forms.models import model_to_dict
 from django.contrib.auth.signals import user_logged_in, user_logged_out
+from django.contrib.auth import get_user_model
+from decimal import Decimal
 
 from core.models import Income, Expense, ExpenseBill, Vendor, Category, IncomeSource, AuditLog, RecurringBill, BillPayment
 from core.middleware.audit import get_current_request
 
+User = get_user_model()
 
 # Fields to exclude from audit logging
-EXCLUDED_FIELDS = ['created_at', 'updated_at', 'password', 'last_login']
+EXCLUDED_FIELDS = ['created_at', 'updated_at', 'password', 'last_login', 'groups', 'user_permissions']
+
+# Global flag to temporarily disable audit logging
+SKIP_AUDIT_LOGGING = False
 
 
 def get_model_dict(instance, fields=None):
@@ -28,6 +34,8 @@ def get_model_dict(instance, fields=None):
                 data[key] = str(value)
             elif isinstance(value, bytes):
                 data[key] = '<binary data>'
+            elif isinstance(value, Decimal):
+                data[key] = str(value)
         return data
     except Exception:
         return {'id': instance.pk, 'str': str(instance)}
@@ -48,7 +56,7 @@ def get_changes(old_data, new_data):
 
 
 # All models to audit
-AUDITABLE_MODELS = [Income, Expense, ExpenseBill, Vendor, Category, IncomeSource, RecurringBill, BillPayment]
+AUDITABLE_MODELS = [Income, Expense, ExpenseBill, Vendor, Category, IncomeSource, RecurringBill, BillPayment, User]
 
 
 # Pre-save signal to capture old values
@@ -60,8 +68,13 @@ AUDITABLE_MODELS = [Income, Expense, ExpenseBill, Vendor, Category, IncomeSource
 @receiver(pre_save, sender=IncomeSource)
 @receiver(pre_save, sender=RecurringBill)
 @receiver(pre_save, sender=BillPayment)
+@receiver(pre_save, sender=User)
 def capture_old_values(sender, instance, **kwargs):
     """Capture old values before save for audit trail."""
+    import core.signals.audit as audit_module
+    if audit_module.SKIP_AUDIT_LOGGING or kwargs.get('raw'):
+        return
+        
     if instance.pk:
         try:
             old_instance = sender.objects.get(pk=instance.pk)
@@ -81,8 +94,13 @@ def capture_old_values(sender, instance, **kwargs):
 @receiver(post_save, sender=IncomeSource)
 @receiver(post_save, sender=RecurringBill)
 @receiver(post_save, sender=BillPayment)
+@receiver(post_save, sender=User)
 def create_audit_log(sender, instance, created, **kwargs):
     """Create audit log entry after save."""
+    import core.signals.audit as audit_module
+    if audit_module.SKIP_AUDIT_LOGGING or kwargs.get('raw'):
+        return
+        
     request = get_current_request()
     user = getattr(request, 'user', None) if request else None
     
@@ -91,6 +109,9 @@ def create_audit_log(sender, instance, created, **kwargs):
     
     new_data = get_model_dict(instance)
     old_data = getattr(instance, '_old_data', None)
+    
+    changes_summary = ''
+    action = AuditLog.ActionType.UPDATE
     
     if created:
         action = AuditLog.ActionType.CREATE
@@ -144,9 +165,11 @@ def create_audit_log(sender, instance, created, **kwargs):
             request_path=request.path if request else '',
             request_method=request.method if request else '',
         )
+        print(f"DEBUG: Audit log created for {sender.__name__} {action}")
     except Exception as e:
-        # Log error but don't break the main operation
         print(f"Audit log error: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 # Pre-delete signal for logging
@@ -158,8 +181,12 @@ def create_audit_log(sender, instance, created, **kwargs):
 @receiver(pre_delete, sender=IncomeSource)
 @receiver(pre_delete, sender=RecurringBill)
 @receiver(pre_delete, sender=BillPayment)
+@receiver(pre_delete, sender=User)
 def log_deletion(sender, instance, **kwargs):
     """Log permanent deletion."""
+    import core.signals.audit as audit_module
+    if audit_module.SKIP_AUDIT_LOGGING or kwargs.get('raw'):
+        return
     request = get_current_request()
     user = getattr(request, 'user', None) if request else None
     
@@ -229,3 +256,4 @@ def log_user_logout(sender, request, user, **kwargs):
             )
         except Exception as e:
             print(f"Audit log error on logout: {e}")
+

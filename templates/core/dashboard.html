@@ -14,14 +14,15 @@
                 </div>
                 <div class="stat-content">
                     <div class="stat-label">Total Income</div>
-                    <div class="stat-value">Rs. {{ total_income|floatformat:0|default:"0" }}</div>
+                    <div class="stat-value">Rs. {{ fmt_total_inc }}</div>
                     <div class="stat-change positive">
-                        <i class="fas fa-chart-line me-1"></i>This Month: Rs. {{ monthly_income|floatformat:0|default:"0" }}
+                        <i class="fas fa-chart-line me-1"></i>
+                        This Month: Rs. {{ fmt_mo_inc }}
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <div class="col-xl-3 col-md-6">
             <div class="stat-card">
                 <div class="stat-icon danger">
@@ -29,14 +30,15 @@
                 </div>
                 <div class="stat-content">
                     <div class="stat-label">Total Expenses</div>
-                    <div class="stat-value">Rs. {{ total_expense|floatformat:0|default:"0" }}</div>
+                    <div class="stat-value">Rs. {{ fmt_total_exp }}</div>
                     <div class="stat-change negative">
-                        <i class="fas fa-chart-line me-1"></i>This Month: Rs. {{ monthly_expense|floatformat:0|default:"0" }}
+                        <i class="fas fa-chart-line me-1"></i>
+                        This Month: Rs. {{ fmt_mo_exp }}
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <div class="col-xl-3 col-md-6">
             <div class="stat-card">
                 <div class="stat-icon accent">
@@ -44,8 +46,9 @@
                 </div>
                 <div class="stat-content">
                     <div class="stat-label">Current Balance</div>
-                    <div class="stat-value {% if current_balance >= 0 %}amount-positive{% else %}amount-negative{% endif %}">
-                        Rs. {{ current_balance|floatformat:0|default:"0" }}
+                    <div
+                        class="stat-value {% if current_balance >= 0 %}amount-positive{% else %}amount-negative{% endif %}">
+                        Rs. {{ fmt_balance }}
                     </div>
                     <div class="stat-change">
                         <i class="fas fa-info-circle me-1"></i>Income - Expenses
@@ -53,7 +56,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-xl-3 col-md-6">
             <div class="stat-card">
                 <div class="stat-icon warning">
@@ -61,15 +64,16 @@
                 </div>
                 <div class="stat-content">
                     <div class="stat-label">Pending Approvals</div>
-                    <div class="stat-value">{{ pending_approvals|default:"0" }}</div>
+                    <div class="stat-value">{{ pending_approvals }}</div>
                     <div class="stat-change">
-                        <i class="fas fa-hourglass-half me-1"></i>Reimbursement: Rs. {{ pending_reimbursements|floatformat:0|default:"0" }}
+                        <i class="fas fa-hourglass-half me-1"></i>
+                        Reimbursement: Rs. {{ fmt_reimb }}
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <!-- Charts Row -->
     <div class="row g-4 mb-4">
         <div class="col-xl-8">
@@ -86,7 +90,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-xl-4">
             <div class="card">
                 <div class="card-header">
@@ -102,7 +106,151 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- Recurring Bills Summary -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        <i class="fas fa-sync me-2 text-accent"></i>Recurring Bills — {{ month_name }}
+                    </h5>
+                    <a href="{% url 'core:recurring_bill_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <!-- Mini Stats -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-6 col-md-3">
+                            <div class="d-flex align-items-center p-2 rounded" style="background:rgba(23,162,184,0.1);">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center me-2"
+                                    style="width:36px;height:36px;background:#17A2B8;color:#fff;">
+                                    <i class="fas fa-file-invoice" style="font-size:0.85rem;"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size:0.75rem;color:#6C757D;">Active</div>
+                                    <div style="font-weight:600;">{{ total_active_bills }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="d-flex align-items-center p-2 rounded" style="background:rgba(40,167,69,0.1);">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center me-2"
+                                    style="width:36px;height:36px;background:#28A745;color:#fff;">
+                                    <i class="fas fa-check" style="font-size:0.85rem;"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size:0.75rem;color:#6C757D;">Paid</div>
+                                    <div style="font-weight:600;">
+                                        {{ bills_paid_count }}
+                                        <small class="text-muted">· Rs. {{ fmt_paid_amt }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="d-flex align-items-center p-2 rounded" style="background:rgba(255,193,7,0.1);">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center me-2"
+                                    style="width:36px;height:36px;background:#FFC107;color:#212529;">
+                                    <i class="fas fa-hourglass-half" style="font-size:0.85rem;"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size:0.75rem;color:#6C757D;">Pending</div>
+                                    <div style="font-weight:600;">
+                                        {{ bills_pending_count }}
+                                        <small class="text-muted">· Rs. {{ fmt_pend_amt }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="d-flex align-items-center p-2 rounded" style="background:rgba(220,53,69,0.1);">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center me-2"
+                                    style="width:36px;height:36px;background:#DC3545;color:#fff;">
+                                    <i class="fas fa-exclamation-triangle" style="font-size:0.85rem;"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size:0.75rem;color:#6C757D;">Overdue</div>
+                                    <div style="font-weight:600;">{{ bills_overdue_count }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bills Table -->
+                    {% if bill_status_list %}
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Bill</th>
+                                    <th>Frequency</th>
+                                    <th class="text-end">Amount</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-center">Date</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in bill_status_list %}
+                                <tr>
+                                    <td>
+                                        <i class="{{ item.bill.category.icon }} me-1"
+                                            style="--cat-color:{{ item.bill.category.color }}; color:var(--cat-color);"></i>
+                                        <a href="{% url 'core:recurring_bill_detail' item.bill.pk %}"
+                                            class="text-decoration-none">
+                                            {{ item.bill.name }}
+                                        </a>
+                                        {% if item.bill.vendor %}
+                                        <br><small class="text-muted">{{ item.bill.vendor.name }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ item.bill.get_frequency_display }}</small>
+                                    </td>
+                                    <td class="text-end">
+                                        Rs. {{ item.amount|floatformat:0 }}
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge {{ item.status_class }}">{{ item.status_label }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if item.paid_date %}
+                                        <small class="text-success">{{ item.paid_date|date:"d M" }}</small>
+                                        {% elif item.due_date %}
+                                        <small
+                                            class="{% if item.status == 'overdue' %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                                            Due {{ item.due_date|date:"d M" }}
+                                        </small>
+                                        {% else %}
+                                        <small class="text-muted">—</small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if item.status != 'paid' %}
+                                        <a href="{% url 'core:recurring_bill_pay' item.bill.pk %}"
+                                            class="btn btn-sm btn-outline-success" title="Pay Now">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </a>
+                                        {% else %}
+                                        <i class="fas fa-check-circle text-success" title="Paid"></i>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-check-double text-muted mb-2" style="font-size:1.5rem;"></i>
+                        <p class="text-muted mb-0">No active recurring bills.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Recent Transactions -->
     <div class="row g-4">
         <div class="col-xl-6">
@@ -132,7 +280,9 @@
                                         <i class="{{ income.source_icon }} me-2 text-accent"></i>
                                         {{ income.get_source_display }}
                                     </td>
-                                    <td class="text-end amount-positive">Rs. {{ income.amount|floatformat:0 }}</td>
+                                    <td class="text-end amount-positive">
+                                        Rs. {{ income.amount|floatformat:0 }}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -152,7 +302,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-xl-6">
             <div class="card">
                 <div class="card-header">
@@ -178,13 +328,16 @@
                                 <tr>
                                     <td>{{ expense.date|date:"d M Y" }}</td>
                                     <td>
-                                        <i class="{{ expense.category.icon }} me-2" style="color: {{ expense.category.color }}"></i>
+                                        <i class="{{ expense.category.icon }} me-2"
+                                            style="color:{{ expense.category.color }}"></i>
                                         {{ expense.category.name }}
                                     </td>
                                     <td>
                                         <span class="badge {{ expense.status_badge_class }}">{{ expense.get_status_display }}</span>
                                     </td>
-                                    <td class="text-end amount-negative">Rs. {{ expense.amount|floatformat:0 }}</td>
+                                    <td class="text-end amount-negative">
+                                        Rs. {{ expense.amount|floatformat:0 }}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -211,71 +364,61 @@
 {% block extra_js %}
 <script>
     // Trend Chart
-    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    var trendCtx = document.getElementById('trendChart').getContext('2d');
+    var trendLabels = {{ chart_labels }};
+    var trendIncome = {{ chart_inc }};
+    var trendExpense = {{ chart_exp }};
     new Chart(trendCtx, {
         type: 'line',
         data: {
-            labels: {{ income_trend_labels|safe }},
-            datasets: [
-                {
-                    label: 'Income',
-                    data: {{ income_trend_data|safe }},
-                    borderColor: '#28A745',
-                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: '#28A745',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                },
-                {
-                    label: 'Expenses',
-                    data: {{ expense_trend_data|safe }},
-                    borderColor: '#DC3545',
-                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: '#DC3545',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                }
-            ]
+            labels: trendLabels,
+            datasets: [{
+                label: 'Income',
+                data: trendIncome,
+                borderColor: '#28A745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#28A745',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 4
+            }, {
+                label: 'Expenses',
+                data: trendExpense,
+                borderColor: '#DC3545',
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#DC3545',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 4
+            }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                }
-            },
+            plugins: { legend: { position: 'top' } },
             scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    }
-                }
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: { grid: { display: false } }
             }
         }
     });
-    
+
     // Category Chart
-    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-    new Chart(categoryCtx, {
+    var catCtx = document.getElementById('categoryChart').getContext('2d');
+    var catLabels = {{ chart_cat_lbl }};
+    var catData = {{ chart_cat_dat }};
+    var catColors = {{ chart_cat_col }};
+    new Chart(catCtx, {
         type: 'doughnut',
         data: {
-            labels: {{ category_labels|safe }},
+            labels: catLabels,
             datasets: [{
-                data: {{ category_data|safe }},
-                backgroundColor: {{ category_colors|safe }},
+                data: catData,
+                backgroundColor: catColors,
                 borderWidth: 0,
                 hoverOffset: 4
             }]
@@ -286,10 +429,7 @@
             plugins: {
                 legend: {
                     position: 'bottom',
-                    labels: {
-                        boxWidth: 12,
-                        padding: 15
-                    }
+                    labels: { boxWidth: 12, padding: 15 }
                 }
             },
             cutout: '60%'

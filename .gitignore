@@ -66,3 +66,7 @@ htmlcov/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Deployment
+*.sock
+backups/

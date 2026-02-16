@@ -387,58 +387,42 @@ def create_pending_payment(bill, user):
 def month_detail(request):
     """API endpoint to get month payment details for a bill."""
     from django.http import JsonResponse
-    
-    print("=== MONTH DETAIL API CALLED ===")
-    print(f"GET params: {request.GET}")
-    
+    import logging
+
+    logger = logging.getLogger(__name__)
+
     try:
         month_name = request.GET.get('month', '')
         year_str = request.GET.get('year', str(date.today().year))
         bill_id = request.GET.get('bill_id', '')
-        
-        print(f"month_name: {month_name}, year_str: {year_str}, bill_id: {bill_id}")
-        
+
         # Validate inputs
         if not month_name or not bill_id:
-            print("Missing required parameters")
             return JsonResponse({'error': 'Missing required parameters'}, status=400)
-        
+
         try:
             year = int(year_str)
         except ValueError:
             year = date.today().year
-        
+
         # Convert month name to number
         month_map = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
                      'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
         month = month_map.get(month_name, 1)
-        print(f"Parsed: month={month}, year={year}")
-        
+
         try:
             bill = RecurringBill.objects.get(pk=bill_id, is_soft_deleted=False)
-            print(f"Bill found: {bill.name}")
-        except (RecurringBill.DoesNotExist, ValueError) as e:
-            print(f"Bill not found: {e}")
+        except (RecurringBill.DoesNotExist, ValueError):
             return JsonResponse({'error': 'Bill not found'}, status=404)
-        
+
         # Find payment for this billing period month (period_start)
         payment = BillPayment.objects.filter(
             bill=bill,
             period_start__year=year,
             period_start__month=month
         ).first()
-        
-        print(f"Payment found: {payment}")
-        
+
         if payment:
-            print(f"Building payment data...")
-            print(f"  amount: {payment.amount} (type: {type(payment.amount)})")
-            print(f"  period_start: {payment.period_start}")
-            print(f"  period_end: {payment.period_end}")
-            print(f"  due_date: {payment.due_date}")
-            print(f"  paid_date: {payment.paid_date}")
-            print(f"  payment_type: {payment.payment_type}")
-            
             data = {
                 'bill_name': bill.name,
                 'status': payment.status,
@@ -449,16 +433,13 @@ def month_detail(request):
                 'paid_date': payment.paid_date.strftime('%d %b %Y') if payment.paid_date else None,
                 'payment_type': payment.get_payment_type_display() if payment.payment_type else None,
             }
-            
-            print(f"Data built: {data}")
-            
+
             # Check if overdue
             if payment.status == 'pending' and payment.due_date and payment.due_date < date.today():
                 data['status'] = 'overdue'
-            
+
             return JsonResponse(data)
         else:
-            print("No payment for this month")
             # No payment record - return basic info
             return JsonResponse({
                 'bill_name': bill.name,
@@ -471,8 +452,7 @@ def month_detail(request):
                 'payment_type': None,
             })
     except Exception as e:
-        import traceback
-        print(f"!!! EXCEPTION: {type(e).__name__}: {e}")
-        traceback.print_exc()
+        logger.exception('Error in month_detail API')
         return JsonResponse({'error': str(e)}, status=500)
+
 

@@ -15,6 +15,7 @@ from core.views import payment_tracker as payment_tracker_views
 from core.views import user as user_views
 from core.views import bills as bills_views
 from core.views import roles as role_views
+from core.views import system as system_views
 
 app_name = 'core'
 
@@ -103,6 +104,10 @@ urlpatterns = [
     path('reports/account-balance/', reports_views.account_balance_report, name='account_balance_report'),
     path('reports/audit-trail/', reports_views.audit_trail, name='audit_trail'),
     path('reports/export/<str:report_type>/', reports_views.export_excel, name='export_excel'),
+    
+    # System Management (Superuser only)
+    path('system/backup/', system_views.backup_view, name='system_backup'),
+    path('system/restore/', system_views.restore_view, name='system_restore'),
 ]
 
 
