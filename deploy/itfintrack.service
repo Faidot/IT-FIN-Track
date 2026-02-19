@@ -1,0 +1,15 @@
+[Unit]
+Description=IT-FIN-Track Docker Compose
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/srv/itfintrack
+ExecStart=/usr/bin/docker compose -f /srv/itfintrack/docker-compose.prod.yml up -d
+ExecStop=/usr/bin/docker compose -f /srv/itfintrack/docker-compose.prod.yml down
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
